@@ -1,0 +1,145 @@
+### Queries
+
+query get_nations(
+  $nation_id: [Int!]
+  $nation_name: [String!]
+  $discord_id: [String!]
+  $page_size: Int = 50
+  $page: Int
+) {
+  nations(
+    id: $nation_id
+    nation_name: $nation_name
+    discord_id: $discord_id
+    first: $page_size
+    page: $page
+  ) {
+    data {
+      ...nationFields
+    }
+    paginatorInfo {
+      ...paginatorFields
+    }
+  }
+}
+
+### Mutations
+
+mutation mutation_bank_withdraw(
+  $receiver: ID!
+  $receiver_type: Int!
+  $money: Float = 0
+  $coal: Float = 0
+  $oil: Float = 0
+  $uranium: Float = 0
+  $iron: Float = 0
+  $bauxite: Float = 0
+  $lead: Float = 0
+  $gasoline: Float = 0
+  $munitions: Float = 0
+  $steel: Float = 0
+  $aluminum: Float = 0
+  $food: Float = 0
+  $note: String!
+) {
+  bankWithdraw(
+    receiver: $receiver
+    receiver_type: $receiver_type
+    money: $money
+    coal: $coal
+    oil: $oil
+    uranium: $uranium
+    iron: $iron
+    bauxite: $bauxite
+    lead: $lead
+    gasoline: $gasoline
+    munitions: $munitions
+    steel: $steel
+    aluminum: $aluminum
+    food: $food
+    note: $note
+  ) {
+    id
+  }
+}
+
+### Fragments
+
+fragment paginatorFields on PaginatorInfo {
+  count
+  hasMorePages
+}
+
+fragment nationFields on Nation {
+  id
+  alliance_id
+  alliance_position
+  alliance_position_id
+  nation_name
+  leader_name
+  continent
+  war_policy
+  war_policy_turns
+  domestic_policy
+  domestic_policy_turns
+  color
+  num_cities
+  score
+  update_tz
+  population
+  flag
+  vacation_mode_turns
+  beige_turns
+  espionage_available
+  last_active
+  date
+  soldiers
+  tanks
+  aircraft
+  ships
+  missiles
+  nukes
+  spies
+  discord
+  discord_id
+  turns_since_last_city
+  turns_since_last_project
+  projects
+  project_bits
+  moon_landing_date
+  mars_landing_date
+  wars_won
+  wars_lost
+  tax_id
+  alliance_seniority
+  gross_national_income
+  gross_domestic_product
+  soldier_casualties
+  soldier_kills
+  tank_casualties
+  tank_kills
+  aircraft_casualties
+  aircraft_kills
+  ship_casualties
+  ship_kills
+  missile_casualties
+  missile_kills
+  nuke_casualties
+  nuke_kills
+  spy_casualties
+  spy_kills
+  spy_attacks
+  money_looted
+  total_infrastructure_destroyed
+  total_infrastructure_lost
+  vip
+  commendations
+  denouncements
+  offensive_wars_count
+  defensive_wars_count
+  economic_policy
+  social_policy
+  government_type
+  credits_redeemed_this_month
+  alliance_join_date
+}

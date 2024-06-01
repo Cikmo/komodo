@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+This script generates a bash command to set environment variables based on a TOML file.
+"""
+import argparse
+import tomllib
+from typing import Any, Dict, Optional
+
+
+def generate_env_command(toml_file: str) -> str:
+    """Generate a bash command to set environment variables based on a TOML file."""
+    # Load the TOML file
+    with open(toml_file, "rb") as file:  # Open the file in binary mode
+        config: Dict[str, Any] = tomllib.load(file)
+
+    env_commands: list[str] = []
+
+    # Recursive function to process the toml dictionary
+    def process_toml(prefix: str, data: Dict[str, Any | dict[str, Any]]) -> None:
+        for key, value in data.items():
+            env_key = f"{prefix}_{key}".upper()
+            if isinstance(value, dict):
+                process_toml(env_key, value)
+            else:
+                env_value = f'"{value}"' if isinstance(value, str) else value
+                env_commands.append(f"export {env_key}={env_value}")
+
+    process_toml("KOMODO", config)
+
+    return "\n".join(env_commands)
+
+
+def main() -> None:
+    """Main function to handle command line arguments and generate the bash command."""
+    parser = argparse.ArgumentParser(
+        description="Generate bash command to set environment variables from a TOML file."
+    )
+    parser.add_argument("toml_file", type=str, help="Path to the TOML file")
+    parser.add_argument("-o", "--output", type=str, help="Path to the output file")
+
+    args = parser.parse_args()
+
+    toml_file: str = args.toml_file
+    output_file: Optional[str] = args.output
+
+    bash_command: str = generate_env_command(toml_file)
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as file:
+            file.write(bash_command)
+    else:
+        print(bash_command)
+
+
+if __name__ == "__main__":
+    main()

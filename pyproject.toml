@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "komodo"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+uvloop = "^0.19.0"
+pydantic = "^2.7.2"
+pydantic-settings = "^2.2.1"
+tomli-w = "^1.0.0"
+discord-py = "^2.3.2"
+piccolo = { extras = ["all"], version = "^1.7.0" }
+pylint = "^3.2.3"
+ariadne-codegen = "^0.13.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+typeCheckingMode = "strict"
+
+[tool.pylint]
+max-line-length = 120
+disable = ["W0107", "R0913", "C0414", "R0903", "C0105"]
+ignore-paths = ["./src/pnw/api_v3/.*"]
+
+[tool.pytest]
+testpaths = "tests"
+pythonpath = "src"
+
+[tool.ariadne-codegen]
+schema_path = "resources/pnw_api_schema.graphql"
+queries_path = "resources/queries.graphql"
+target_package_name = "api_v3"
+target_package_path = "src/pnw"
+
+[tool.ariadne-codegen.scalars.DateTimeAuto]
+type = "pydantic.AwareDatetime"
+
+[tool.ariadne-codegen.scalars.DateTime]
+type = "pydantic.AwareDatetime"
+
+[tool.ariadne-codegen.scalars.Date]
+type = "datetime.date"
