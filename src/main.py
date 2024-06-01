@@ -6,7 +6,9 @@ import asyncio
 import logging
 import os
 
-from src.settings import load_or_initialize_settings
+from dotenv import load_dotenv
+
+from .settings import load_or_initialize_settings
 
 if os.name != "nt":
     import uvloop
@@ -18,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 def main():
     """The entry point of the application."""
+    load_dotenv()
 
-    settings = load_or_initialize_settings("settings.json")
+    settings = load_or_initialize_settings(
+        "settings.json" if __debug__ else None, use_env=not __debug__
+    )
 
     print(settings)

@@ -3,10 +3,12 @@ This module contains the settings model and functions to load or initialize sett
 """
 
 from __future__ import annotations
+
 import logging
 import os
 
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,7 @@ class PnWSettings(BaseModel):
     bot_key: str | None = None
 
 
-class Settings(BaseModel):
+class Settings(BaseSettings):
     """Application settings."""
 
     _settings_version_: int = (
@@ -41,6 +43,8 @@ class Settings(BaseModel):
     bot: BotSettings = BotSettings()
 
     pnw: PnWSettings = PnWSettings()
+
+    model_config = SettingsConfigDict(env_prefix="komodo_", case_sensitive=True)
 
     def save_to_file(self, file_path: str):
         """Save settings to a file.
@@ -70,21 +74,30 @@ class Settings(BaseModel):
             return settings
 
 
-def load_or_initialize_settings(file_path: str):
-    """Load or initialize settings. If the file does not exist, default
-    settings are created and saved. If new settings are added to the model,
-    they will be added to the file with default values.
+def load_or_initialize_settings(
+    file_path: str | None = None, use_env: bool = False
+) -> Settings:
+    """Load or initialize settings.
 
     Args:
-        file_path: The path to the settings file. Defaults to "settings.json".
+        file_path: The path to the settings file. Mutually exclusive with use_env.
+        use_env: Whether to use environment variables. Mutually exclusive with file_path.
+
+    Raises:
+        ValueError: If both file_path and use_env are provided.
+
+    Returns:
+        Settings: The loaded or initialized settings.
     """
 
-    if os.path.exists(file_path):
+    if file_path and use_env:
+        raise ValueError("Cannot use both file_path and use_env.")
+    elif file_path and os.path.exists(file_path):
         settings = Settings.load_from_file(file_path)
     else:
         settings = Settings()
-        logger.info("Default settings created")
 
-    settings.save_to_file(file_path)
+    if file_path:
+        settings.save_to_file(file_path)
 
     return settings
