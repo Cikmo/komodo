@@ -22,6 +22,13 @@ class BotSettings(BaseModel):
     prefix: str = "!"
 
 
+class PnWSettings(BaseModel):
+    """PnW settings."""
+
+    api_key: str = "YOUR_API_KEY"
+    bot_key: str | None = None
+
+
 class Settings(BaseModel):
     """Application settings."""
 
@@ -32,6 +39,8 @@ class Settings(BaseModel):
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     bot: BotSettings = BotSettings()
+
+    pnw: PnWSettings = PnWSettings()
 
     def save_to_file(self, file_path: str):
         """Save settings to a file.
