@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     """The entry point of the application."""
+
     setup_logging()
 
     settings = get_settings()
