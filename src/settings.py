@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Tuple, Type
 
+import tomllib
 import tomli_w
 from pydantic import BaseModel
 from pydantic_settings import (
@@ -20,15 +20,19 @@ from pydantic_settings import (
 
 logger = logging.getLogger(__name__)
 
-
 SETTINGS_FILE_PATH = "settings.toml"
 
 
-class BotSettings(BaseModel):
+class DiscordSettings(BaseModel):
     """Bot settings."""
 
     token: str = ""
-    prefix: str = "!"
+    client_id: str = ""
+    client_secret: str = ""
+
+    bot_name: str = "Komodo"
+    command_prefix: str = "!"
+    developer_guild_id: int = 0
 
 
 class PnWSettings(BaseModel):
@@ -36,6 +40,8 @@ class PnWSettings(BaseModel):
 
     api_key: str = ""
     bot_key: str = ""
+    username: str = ""
+    password: str = ""
 
 
 class LoggingSettings(BaseModel):
@@ -50,7 +56,7 @@ class Settings(BaseSettings):
 
     file_version: int = 1
 
-    bot: BotSettings = BotSettings()
+    discord: DiscordSettings = DiscordSettings()
 
     pnw: PnWSettings = PnWSettings()
 
@@ -63,12 +69,12 @@ class Settings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: Type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
-    ) -> Tuple[PydanticBaseSettingsSource, EnvSettingsSource]:
+    ) -> tuple[PydanticBaseSettingsSource, EnvSettingsSource]:
         return (TomlConfigSettingsSource(settings_cls), EnvSettingsSource(settings_cls))
 
     def save_to_file(self, file_path: str | None = None):
@@ -76,42 +82,59 @@ class Settings(BaseSettings):
 
         Args:
             file_path: The path to the file to save the settings to. If not provided, use the default settings file path.
+
+        Raises:
+            ValueError: If the generated TOML is invalid.
         """
 
         file_path = file_path or SETTINGS_FILE_PATH
 
         toml = tomli_w.dumps(self.model_dump())
+
+        # Validate toml
+        try:
+            tomllib.loads(toml)
+        except tomllib.TOMLDecodeError as e:
+            raise ValueError(f"Invalid TOML generated.") from e
+
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(toml)
             logger.info("Settings saved to %s", file_path)
 
 
 def load_or_initialize_settings(use_file: bool) -> Settings:
-    """Load or initialize settings. If a file path is provided, load settings from the file.
-    Otherwise, initialize settings using environment variables. Any settings not provided by
-    the file or environment variables will use the default values.
-
+    """Load or initialize settings.
     Args:
-        file_path: The path to the settings file.
+        use_file: A flag indicating whether to load settings from a file or use environment variables.
 
     Returns:
         Settings: The loaded or initialized settings.
     """
 
-    settings = Settings()
-
     if use_file:
         if os.path.exists(path=SETTINGS_FILE_PATH):
-            # Load settings from the provided file.
+            # Load settings from the settings file.
+
+            print("test")
+
             settings = Settings()
-            print("settings loaded from file")
+
+            logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
         else:
             # Create a new settings model, ignoring any environment variables and using the default values.
             settings = Settings.model_construct()
+            logger.debug("Initializing settings with default values")
 
         settings.save_to_file(SETTINGS_FILE_PATH)
+        logger.info("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
     else:
         # Create a new settings model, using environment variables if provided.
         settings = Settings()
+        logger.debug("Initializing settings using environment variables if provided")
+
+    logger.info(
+        "Using settings from %s",
+        "environment variables" if not use_file else f"{SETTINGS_FILE_PATH}",
+    )
 
     return settings
