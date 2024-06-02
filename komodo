@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# komodo - A script to run other scripts in the ./scripts directory
+
+SCRIPTS_DIR="./scripts"
+
+# Check if the first argument (sub script) is provided
+if [ -z "$1" ]; then
+  echo "Usage: ./komodo <sub_script> [arguments...]"
+  exit 1
+fi
+
+# Extract the script name and shift to the script arguments
+SCRIPT_NAME="$1"
+shift
+
+# Construct the script path
+SCRIPT_PATH="$SCRIPTS_DIR/$SCRIPT_NAME"
+
+# Check if the script exists and is executable
+if [ ! -x "$SCRIPT_PATH" ]; then
+  echo "Error: '$SCRIPT_NAME' not found or is not executable in the $SCRIPTS_DIR directory."
+  exit 1
+fi
+
+# Run the script with the provided arguments
+"$SCRIPT_PATH" "$@"
