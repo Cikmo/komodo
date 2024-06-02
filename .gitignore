@@ -1,5 +1,6 @@
 # Application specific files
 settings.toml
+settings.dev.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

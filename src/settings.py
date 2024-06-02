@@ -6,8 +6,10 @@ from __future__ import annotations
 
 import logging
 import os
-
+import sys
 import tomllib
+from functools import lru_cache
+
 import tomli_w
 from pydantic import BaseModel
 from pydantic_settings import (
@@ -20,7 +22,8 @@ from pydantic_settings import (
 
 logger = logging.getLogger(__name__)
 
-SETTINGS_FILE_PATH = "settings.toml"
+USE_FILE = os.getenv("USE_FILE", "true").lower() in ("true", "1", "t")
+SETTINGS_FILE_PATH = "settings.dev.toml" if __debug__ else "settings.toml"
 
 
 class DiscordSettings(BaseModel):
@@ -95,46 +98,98 @@ class Settings(BaseSettings):
         try:
             tomllib.loads(toml)
         except tomllib.TOMLDecodeError as e:
-            raise ValueError(f"Invalid TOML generated.") from e
+            raise tomllib.TOMLDecodeError(f"Invalid TOML generated.") from e
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(toml)
-            logger.info("Settings saved to %s", file_path)
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(toml)
+                logger.info("Settings saved to %s", file_path)
+        except IOError as e:
+            logger.error("Failed to save settings to %s", file_path)
+            raise e
+
+    @classmethod
+    def load_or_initialize_settings(cls) -> Settings:
+        """Load or initialize settings.
+        Args:
+            use_file: A flag indicating whether to load settings from a file or use environment variables.
+
+        Returns:
+            Settings: The loaded or initialized settings.
+        """
+
+        if USE_FILE:
+            settings_file_created = False
+
+            if os.path.exists(path=SETTINGS_FILE_PATH):
+                # Load settings from the settings file.
+
+                settings = cls()
+
+                logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
+            else:
+                # Create a new settings model, ignoring any environment variables and using the default values.
+                settings = cls.model_construct()
+                logger.debug("Initializing settings with default values")
+
+                settings_file_created = True
+
+            settings.save_to_file(SETTINGS_FILE_PATH)
+            logger.info("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
+
+            if settings_file_created:
+                cls.exit_due_to_new_file_created()
+
+        else:
+            # Create a new settings model, using environment variables if provided.
+            settings = cls()
+            logger.debug(
+                "Initializing settings using environment variables if provided"
+            )
+
+        logger.info(
+            "Using settings from %s",
+            "environment variables" if not USE_FILE else f"{SETTINGS_FILE_PATH}",
+        )
+
+        settings.validate_essential_settings()
+
+        return settings
+
+    @staticmethod
+    def exit_due_to_new_file_created():
+        """Handle missing settings by informing the user and exiting."""
+        logger.error(
+            "Settings file not found.\n"
+            "A new settings file has been created with default values. Please update it with the correct values "
+            "before restarting the application."
+        )
+        sys.exit(1)
+
+    def validate_essential_settings(self) -> None:
+        """Validate the settings. If any essential settings are missing, print an error message and exit."""
+        errors: list[str] = []
+
+        if self.discord.token == "":
+            errors.append("discord token")
+        if self.discord.client_id == "":
+            errors.append("discord client_id")
+        if self.discord.client_secret == "":
+            errors.append("discord client_secret")
+
+        if any(errors):
+            logger.error(
+                "The following essential settings have not been set:\n- "
+                + "\n- ".join(errors)
+            )
+            exit(1)
 
 
-def load_or_initialize_settings(use_file: bool) -> Settings:
-    """Load or initialize settings.
-    Args:
-        use_file: A flag indicating whether to load settings from a file or use environment variables.
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Get the application settings. If the settings have not been loaded, load them.
 
     Returns:
-        Settings: The loaded or initialized settings.
+        Settings: The application settings.
     """
-
-    if use_file:
-        if os.path.exists(path=SETTINGS_FILE_PATH):
-            # Load settings from the settings file.
-
-            print("test")
-
-            settings = Settings()
-
-            logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
-        else:
-            # Create a new settings model, ignoring any environment variables and using the default values.
-            settings = Settings.model_construct()
-            logger.debug("Initializing settings with default values")
-
-        settings.save_to_file(SETTINGS_FILE_PATH)
-        logger.info("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
-    else:
-        # Create a new settings model, using environment variables if provided.
-        settings = Settings()
-        logger.debug("Initializing settings using environment variables if provided")
-
-    logger.info(
-        "Using settings from %s",
-        "environment variables" if not use_file else f"{SETTINGS_FILE_PATH}",
-    )
-
-    return settings
+    return Settings.load_or_initialize_settings()

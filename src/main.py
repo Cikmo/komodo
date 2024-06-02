@@ -5,10 +5,9 @@ Main module of the application.
 import asyncio
 import logging
 import os
+import hikari
 
-from dotenv import load_dotenv
-
-from .settings import load_or_initialize_settings
+from src.settings import get_settings
 
 if os.name != "nt":
     import uvloop
@@ -20,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     """The entry point of the application."""
-    load_dotenv()
 
-    settings = load_or_initialize_settings(True if __debug__ else False)
+    settings = get_settings()
 
-    print(settings)
+    _bot = hikari.GatewayBot(token=settings.discord.token)
