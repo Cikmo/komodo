@@ -30,7 +30,6 @@ class DiscordSettings(BaseModel):
     """Bot settings."""
 
     token: str = ""
-    client_id: str = ""
     client_secret: str = ""
 
     bot_name: str = "Komodo"
@@ -50,8 +49,12 @@ class PnWSettings(BaseModel):
 class LoggingSettings(BaseModel):
     """Logging settings."""
 
-    level: str = "INFO"
-    format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    stream_level_komodo: str = "INFO"
+    stream_level_discord: str = "INFO"
+
+    file_path: str = ""
+    file_level: str = "INFO"
+    file_level_discord: str = "INFO"
 
 
 class Settings(BaseSettings):
@@ -66,7 +69,9 @@ class Settings(BaseSettings):
     logging: LoggingSettings = LoggingSettings()
 
     model_config = SettingsConfigDict(
-        env_prefix="komodo_", extra="ignore", toml_file=SETTINGS_FILE_PATH
+        env_prefix="komodo_",
+        extra="ignore",
+        toml_file=SETTINGS_FILE_PATH,
     )
 
     @classmethod
@@ -172,8 +177,6 @@ class Settings(BaseSettings):
 
         if self.discord.token == "":
             errors.append("discord token")
-        if self.discord.client_id == "":
-            errors.append("discord client_id")
         if self.discord.client_secret == "":
             errors.append("discord client_secret")
 
