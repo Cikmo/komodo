@@ -6,98 +6,112 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Tuple, Type
 
+import tomli_w
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: Look into using pydantic's BaseSettings instead of BaseModel
-# https://docs.pydantic.dev/latest/concepts/pydantic_settings/
+SETTINGS_FILE_PATH = "settings.toml"
 
 
 class BotSettings(BaseModel):
     """Bot settings."""
 
-    token: str = "YOUR_BOT_TOKEN"
+    token: str = ""
     prefix: str = "!"
 
 
 class PnWSettings(BaseModel):
     """PnW settings."""
 
-    api_key: str = "YOUR_API_KEY"
-    bot_key: str | None = None
+    api_key: str = ""
+    bot_key: str = ""
+
+
+class LoggingSettings(BaseModel):
+    """Logging settings."""
+
+    level: str = "INFO"
+    format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
 class Settings(BaseSettings):
     """Application settings."""
 
-    _settings_version_: int = (
-        1  # Increment when breaking changes are made, like changing the type of a field, etc.
-    )
-    log_level: str = "INFO"
-    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    file_version: int = 1
 
     bot: BotSettings = BotSettings()
 
     pnw: PnWSettings = PnWSettings()
 
-    model_config = SettingsConfigDict(env_prefix="komodo_", case_sensitive=True)
+    logging: LoggingSettings = LoggingSettings()
 
-    def save_to_file(self, file_path: str):
+    model_config = SettingsConfigDict(
+        env_prefix="komodo_", extra="ignore", toml_file=SETTINGS_FILE_PATH
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, EnvSettingsSource]:
+        return (TomlConfigSettingsSource(settings_cls), EnvSettingsSource(settings_cls))
+
+    def save_to_file(self, file_path: str | None = None):
         """Save settings to a file.
 
         Args:
-            file_path: The path to the settings file. Defaults to "settings.json".
+            file_path: The path to the file to save the settings to. If not provided, use the default settings file path.
         """
-        settings_json = self.model_dump_json(indent=4)
+
+        file_path = file_path or SETTINGS_FILE_PATH
+
+        toml = tomli_w.dumps(self.model_dump())
         with open(file_path, "w", encoding="utf-8") as f:
-            f.write(settings_json)
+            f.write(toml)
             logger.info("Settings saved to %s", file_path)
 
-    @classmethod
-    def load_from_file(cls, file_path: str) -> "Settings":
-        """Load settings from a file.
 
-        Args:
-            file_path: The path to the settings file. Defaults to "settings.json".
-
-        Returns:
-            The loaded settings.
-        """
-        with open(file_path, "r", encoding="utf-8") as f:
-            settings_json = f.read()
-            settings = cls.model_validate_json(settings_json)
-            logger.info("Settings loaded from %s", file_path)
-            return settings
-
-
-def load_or_initialize_settings(
-    file_path: str | None = None, use_env: bool = False
-) -> Settings:
-    """Load or initialize settings.
+def load_or_initialize_settings(use_file: bool) -> Settings:
+    """Load or initialize settings. If a file path is provided, load settings from the file.
+    Otherwise, initialize settings using environment variables. Any settings not provided by
+    the file or environment variables will use the default values.
 
     Args:
-        file_path: The path to the settings file. Mutually exclusive with use_env.
-        use_env: Whether to use environment variables. Mutually exclusive with file_path.
-
-    Raises:
-        ValueError: If both file_path and use_env are provided.
+        file_path: The path to the settings file.
 
     Returns:
         Settings: The loaded or initialized settings.
     """
 
-    if file_path and use_env:
-        raise ValueError("Cannot use both file_path and use_env.")
-    elif file_path and os.path.exists(file_path):
-        settings = Settings.load_from_file(file_path)
-    else:
-        settings = Settings()
+    settings = Settings()
 
-    if file_path:
-        settings.save_to_file(file_path)
+    if use_file:
+        if os.path.exists(path=SETTINGS_FILE_PATH):
+            # Load settings from the provided file.
+            settings = Settings()
+            print("settings loaded from file")
+        else:
+            # Create a new settings model, ignoring any environment variables and using the default values.
+            settings = Settings.model_construct()
+
+        settings.save_to_file(SETTINGS_FILE_PATH)
+    else:
+        # Create a new settings model, using environment variables if provided.
+        settings = Settings()
 
     return settings

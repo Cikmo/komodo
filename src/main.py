@@ -22,8 +22,6 @@ def main():
     """The entry point of the application."""
     load_dotenv()
 
-    settings = load_or_initialize_settings(
-        "settings.json" if __debug__ else None, use_env=not __debug__
-    )
+    settings = load_or_initialize_settings(True if __debug__ else False)
 
     print(settings)
