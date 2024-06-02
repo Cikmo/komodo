@@ -99,7 +99,7 @@ class CommandErrorHandler(commands.Cog):
                     fmt = f"**{'**, **'.join(missing[:-1])}, and **{missing[-1]}**"
                 else:
                     fmt = " and ".join(f"**{missing}**")
-                embed_title = "Komodo Missing Permissions"
+                embed_title = "I'm not allowed to do that"
                 embed_description = (
                     f"I need the **{fmt}** permission(s) to run this command."
                 )
@@ -129,6 +129,7 @@ class CommandErrorHandler(commands.Cog):
                         f"You are missing the {' and '.join(roles)} roles."
                     )
             case commands.CheckFailure():
+                # This is where custom command exceptions will be handled
                 embed_title = "No Permission"
                 embed_description = "You do not have permission to use this command."
             case _:
