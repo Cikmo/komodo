@@ -89,7 +89,8 @@ class Settings(BaseSettings):
         """Save settings to a file.
 
         Args:
-            file_path: The path to the file to save the settings to. If not provided, use the default settings file path.
+            file_path: The path to the file to save the settings to.
+            If not provided, use the default settings file path.
 
         Raises:
             ValueError: If the generated TOML is invalid.
@@ -103,7 +104,7 @@ class Settings(BaseSettings):
         try:
             tomllib.loads(toml)
         except tomllib.TOMLDecodeError as e:
-            raise tomllib.TOMLDecodeError(f"Invalid TOML generated.") from e
+            raise tomllib.TOMLDecodeError("Invalid TOML generated.") from e
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:
@@ -166,13 +167,14 @@ class Settings(BaseSettings):
         """Handle missing settings by informing the user and exiting."""
         logger.error(
             "Settings file not found.\n"
-            "A new settings file has been created with default values. Please update it with the correct values "
-            "before restarting the application."
+            "A new settings file has been created with default values. Please update it with the "
+            "correct values before restarting the application."
         )
         sys.exit(1)
 
     def validate_essential_settings(self) -> None:
-        """Validate the settings. If any essential settings are missing, print an error message and exit."""
+        """Validate the settings. If any essential settings are missing,
+        print an error message and exit."""
         errors: list[str] = []
 
         if self.discord.token == "":
@@ -182,10 +184,10 @@ class Settings(BaseSettings):
 
         if any(errors):
             logger.error(
-                "The following essential settings have not been set:\n- "
-                + "\n- ".join(errors)
+                "The following essential settings have not been set:\n- %s",
+                "\n- ".join(errors),
             )
-            exit(1)
+            sys.exit(1)
 
 
 @lru_cache(maxsize=1)

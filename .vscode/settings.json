@@ -6,5 +6,8 @@
   "python.analysis.inlayHints.variableTypes": true,
   "python.analysis.typeCheckingMode": "strict",
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "pylint.args": [
+    "--max-line-length=120", "--disable=R0913"
+  ]
 }
