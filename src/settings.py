@@ -33,7 +33,7 @@ class DiscordSettings(BaseModel):
     client_secret: str = ""
 
     bot_name: str = "Komodo"
-    command_prefix: str = "!"
+    default_command_prefix: str = "!"
     developer_guild_id: int = 0
 
 
@@ -46,15 +46,46 @@ class PnWSettings(BaseModel):
     password: str = ""
 
 
+class LoggingStreamSettings(BaseModel):
+    """Logging stream settings."""
+
+    level: str = "INFO"
+    level_discord: str = "INFO"
+
+    datefmt: str = "%Y-%m-%d %H:%M:%S"
+    format_info: str = (
+        "\033[1;30m%(asctime)s\033[0m \033[1;34m%(levelname)-8s\033[0m \033[1;35m%(name)s\033[0m %(message)s"
+    )
+    format_debug: str = (
+        "\033[1;30m%(asctime)s\033[0m \033[1;35m%(levelname)-8s\033[0m \033[1;35m%(name)s\033[0m %(message)s"
+    )
+    format_warning: str = (
+        "\033[1;30m%(asctime)s\033[0m \033[1;33m%(levelname)-8s\033[0m \033[1;35m%(name)s\033[0m %(message)s"
+    )
+    format_error: str = (
+        "\033[1;30m%(asctime)s\033[0m \033[1;31m%(levelname)-8s\033[0m \033[1;35m%(name)s\033[0m %(message)s"
+    )
+    format_critical: str = (
+        "\033[1;30m%(asctime)s\033[0m \033[1;41m%(levelname)-8s\033[0m \033[1;35m%(name)s\033[0m %(message)s"
+    )
+
+
+class LoggingFileSettings(BaseModel):
+    """Logging file settings."""
+
+    path: str = ""
+    level: str = "INFO"
+    level_discord: str = "INFO"
+
+    datefmt: str = "%Y-%m-%d %H:%M:%S"
+    format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+
 class LoggingSettings(BaseModel):
     """Logging settings."""
 
-    stream_level_komodo: str = "INFO"
-    stream_level_discord: str = "INFO"
-
-    file_path: str = ""
-    file_level: str = "INFO"
-    file_level_discord: str = "INFO"
+    stream: LoggingStreamSettings = LoggingStreamSettings()
+    file: LoggingFileSettings = LoggingFileSettings()
 
 
 class Settings(BaseSettings):

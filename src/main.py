@@ -29,7 +29,9 @@ def main():
     settings = get_settings()
 
     bot = Bot(
-        command_prefix=commands.when_mentioned_or(settings.discord.command_prefix),
+        command_prefix=commands.when_mentioned_or(
+            settings.discord.default_command_prefix
+        ),
         intents=discord.Intents.all(),
     )
 
