@@ -1,3 +1,7 @@
+"""
+Custom bot class that extends discord.ext.commands.Bot.
+"""
+
 import asyncio
 import logging
 import os
@@ -14,14 +18,16 @@ COG_PATH = "src/cogs"
 
 
 class Bot(commands.Bot):
+    """Custom bot class that extends discord.ext.commands.Bot."""
 
     async def setup_hook(self):
 
         await load_all_cogs(self)
 
     async def on_ready(self):
+        """Event that is called when the bot is ready."""
         assert self.user is not None
-        logger.info(f"Logged in as {self.user} (ID: {self.user.id})")
+        logger.info("Logged in as %s (ID: %s)", self.user, self.user.id)
 
         if os.environ.get("RESTART_CHANNEL_ID"):
             channel = self.get_channel(int(os.environ["RESTART_CHANNEL_ID"]))
@@ -45,8 +51,8 @@ class Bot(commands.Bot):
         """
         try:
             module = find_cog_module(cog_name, COG_PATH)
+            logger.info("Loaded cog %s", module)
             await self.load_extension(module)
-            logger.info(f"Loaded cog {module}")
         except FileNotFoundError as e:
             raise commands.ExtensionNotFound(cog_name) from e
 
@@ -61,8 +67,8 @@ class Bot(commands.Bot):
         """
         try:
             module = find_cog_module(cog_name, COG_PATH)
+            logger.info("Unloaded cog %s", module)
             await self.unload_extension(module)
-            logger.info(f"Unloaded cog {module}")
         except FileNotFoundError as e:
             raise commands.ExtensionNotFound(cog_name) from e
 
@@ -77,19 +83,23 @@ class Bot(commands.Bot):
         """
         try:
             module = find_cog_module(cog_name, COG_PATH)
-            await self.reload_extension(module)
-            logger.info(f"Reloaded cog {module}")
+            logger.info("Reloaded cog %s", module)
         except FileNotFoundError as e:
             raise commands.ExtensionNotFound(cog_name) from e
 
     async def shutdown(self, restart: bool = False):
+        """Shutdown the bot.
+
+        Args:
+            restart: Whether to restart the bot after shutting down.
+        """
         await self.close()
         logger.info("Closed bot.")
 
         if restart:
             os.execv(sys.executable, [sys.executable, *sys.argv])
         else:
-            exit(0)
+            sys.exit(0)
 
 
 def find_cog_module(cog_name: str, cog_path: str) -> str:
@@ -125,7 +135,7 @@ async def load_all_cogs(bot: Bot) -> None:
         async with asyncio.TaskGroup() as tg:
             for file in recursive_module_search(pathlib.Path(COG_PATH)):
                 tg.create_task(bot.load_extension(file))
-                logger.info(f"Loaded cog {file}")
+                logger.info("Loaded cog %s", file)
     except* commands.errors.ExtensionAlreadyLoaded as eg:
         for e in eg.exceptions:
             logger.warning(e)
@@ -138,10 +148,8 @@ async def load_all_cogs(bot: Bot) -> None:
     except* commands.errors.ExtensionFailed as eg:
         for e in eg.exceptions:
             logger.exception(e)
-
-    except* Exception as eg:
-        for _ in eg.exceptions:
-            logger.exception(f"Exception thrown while loading cog.")
+    except* Exception as e:
+        logger.exception("Exception thrown while loading cog.", exc_info=e)
     logger.info("Finished loading cogs.")
 
 
@@ -155,7 +163,7 @@ async def unload_all_cogs(bot: Bot) -> None:
         async with asyncio.TaskGroup() as tg:
             for file in recursive_module_search(pathlib.Path(COG_PATH)):
                 tg.create_task(bot.unload_extension(file))
-                logger.info(f"Unloaded cog {file}")
+                logger.info("Unloaded cog %s", file)
     except* commands.errors.ExtensionNotLoaded as eg:
         for e in eg.exceptions:
             logger.warning(e)
@@ -168,14 +176,13 @@ async def unload_all_cogs(bot: Bot) -> None:
     except* commands.errors.ExtensionFailed as eg:
         for e in eg.exceptions:
             logger.exception(e)
-    except* Exception as eg:
-        for _ in eg.exceptions:
-            logger.exception(f"Exception thrown while unloading cog.")
+    except* Exception as e:
+        logger.exception("Exception thrown while unloading cog.", exc_info=e)
     logger.info("Finished unloading cogs.")
 
 
 def recursive_module_search(
-    path: pathlib.Path, *, exclude: list[str] = []
+    path: pathlib.Path, *, exclude: list[str] | None = None
 ) -> Generator[str, None, None]:
     """Recursively search for python modules in a directory.
 
@@ -186,6 +193,9 @@ def recursive_module_search(
     Returns:
         Generator yielding module paths as strings.
     """
+    if exclude is None:
+        exclude = []
+
     for f in path.rglob("*.py"):
         if f.is_file() and f.stem not in exclude:
             yield ".".join(f.parts[:-1] + (f.stem,))
