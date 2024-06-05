@@ -11,6 +11,7 @@ from typing import Generator
 
 import discord
 from discord.ext import commands
+from piccolo.engine import PostgresEngine, engine_finder
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,8 @@ class Bot(commands.Bot):
     """Custom bot class that extends discord.ext.commands.Bot."""
 
     async def setup_hook(self):
+
+        await open_database_connection_pool()
 
         await load_all_cogs(self)
 
@@ -93,6 +96,8 @@ class Bot(commands.Bot):
         Args:
             restart: Whether to restart the bot after shutting down.
         """
+        await close_database_connection_pool()
+
         await self.close()
         logger.info("Closed bot.")
 
@@ -100,6 +105,24 @@ class Bot(commands.Bot):
             os.execv(sys.executable, [sys.executable, *sys.argv])
         else:
             sys.exit(0)
+
+
+async def open_database_connection_pool():
+    """Open the database connection pool."""
+    engine: PostgresEngine | None = engine_finder()  # type: ignore
+    if not engine:
+        raise RuntimeError("No piccolo engine found.")
+    await engine.start_connection_pool()
+    logger.info("Opened database connection pool.")
+
+
+async def close_database_connection_pool():
+    """Close the database connection pool."""
+    engine: PostgresEngine | None = engine_finder()  # type: ignore
+    if not engine:
+        raise RuntimeError("No piccolo engine found.")
+    await engine.close_connection_pool()
+    logger.info("Closed database connection pool.")
 
 
 def find_cog_module(cog_name: str, cog_path: str) -> str:
