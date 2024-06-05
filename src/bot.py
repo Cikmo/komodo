@@ -171,8 +171,6 @@ async def load_all_cogs(bot: Bot) -> None:
     except* commands.errors.ExtensionFailed as eg:
         for e in eg.exceptions:
             logger.exception(e)
-    except* Exception as e:
-        logger.exception("Exception thrown while loading cog.", exc_info=e)
     logger.info("Finished loading cogs.")
 
 
@@ -199,8 +197,6 @@ async def unload_all_cogs(bot: Bot) -> None:
     except* commands.errors.ExtensionFailed as eg:
         for e in eg.exceptions:
             logger.exception(e)
-    except* Exception as e:
-        logger.exception("Exception thrown while unloading cog.", exc_info=e)
     logger.info("Finished unloading cogs.")
 
 
