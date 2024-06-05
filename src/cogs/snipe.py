@@ -89,23 +89,6 @@ class Snipe(commands.Cog):
                 colour=discord.Colour.blurple(),
             )
 
-            author = ctx.bot.get_user(message.message_author_id)
-
-            if author is not None:
-                embed.set_author(
-                    name=author,
-                    icon_url=(
-                        author.avatar.url
-                        if author.avatar
-                        else author.default_avatar.url
-                    ),
-                )
-            else:
-                embed.set_author(
-                    name="Unknown User",
-                    icon_url="https://cdn.discordapp.com/embed/avatars/0.png",
-                )
-
             embed.add_field(name="Content", value=sanitised_content, inline=False)
 
         else:
@@ -117,7 +100,7 @@ class Snipe(commands.Cog):
             embed_description = (
                 f"https://discord.com/channels/{ctx.guild.id}/{ctx.channel.id}/{message.message_id}\n"
                 f"`Sent:    ` {create_discord_timestamp(message.time_sent)}\n"
-                f"`Deleted: ` {create_discord_timestamp(message.time_edited)}"
+                f"`Edited: ` {create_discord_timestamp(message.time_edited)}"
             )
 
             embed = discord.Embed(
@@ -126,27 +109,25 @@ class Snipe(commands.Cog):
                 colour=discord.Colour.blurple(),
             )
 
-            author = ctx.bot.get_user(message.message_author_id)
-
-            if author is not None:
-                embed.set_author(
-                    name=author,
-                    icon_url=(
-                        author.avatar.url
-                        if author.avatar
-                        else author.default_avatar.url
-                    ),
-                )
-            else:
-                embed.set_author(
-                    name="Unknown User",
-                    icon_url="https://cdn.discordapp.com/embed/avatars/0.png",
-                )
-
             embed.add_field(name="Before", value=before_sanitised, inline=False)
             embed.add_field(name="After", value=after_sanitised, inline=False)
 
         embed.set_footer(text=f"Sniped by {ctx.author}")
+
+        author = ctx.bot.get_user(message.message_author_id)
+
+        if author is not None:
+            embed.set_author(
+                name=author,
+                icon_url=(
+                    author.avatar.url if author.avatar else author.default_avatar.url
+                ),
+            )
+        else:
+            embed.set_author(
+                name="Unknown User",
+                icon_url="https://cdn.discordapp.com/embed/avatars/0.png",
+            )
 
         await ctx.send(embed=embed)
 
