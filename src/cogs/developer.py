@@ -1,21 +1,44 @@
 from discord.ext import commands
 
 from src.bot import Bot
+from src.tables import Nation
 
 
 class Developer(commands.Cog):
+    """Developer commands."""
+
     def __init__(self, bot: Bot):
         self.bot = bot
 
     @commands.group(name="dev", aliases=["!"])
     @commands.is_owner()
     async def dev(self, ctx: commands.Context[Bot]):
+        """Group for developer commands."""
         pass
 
     @dev.command()
-    async def ping(self, ctx: commands.Context[Bot]):
+    async def create(self, ctx: commands.Context[Bot], name: str):
         """Ping the bot."""
-        await ctx.reply("pong!")
+        nation = await Nation.objects().get(Nation.name == name)
+
+        if nation:
+            await ctx.reply("Nation already exists.")
+            return
+
+        nation = Nation(name=name)
+        await nation.save()
+        await ctx.reply(f"Created nation {name}")
+
+    @dev.command()
+    async def get(self, ctx: commands.Context[Bot], name: str):
+        """Ping the bot."""
+        nation = await Nation.objects().get(Nation.name == name)
+
+        if not nation:
+            await ctx.reply("Nation does not exist.")
+            return
+
+        await ctx.reply(f"Found nation {name}")
 
     @dev.command()
     async def reload(self, ctx: commands.Context[Bot], cog_name: str):
