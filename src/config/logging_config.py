@@ -5,7 +5,7 @@ This module contains the logging configuration for the bot.
 import logging
 from enum import Enum
 
-from src.settings import get_settings
+from src.config.settings import get_settings
 
 
 class LogLevel(Enum):
