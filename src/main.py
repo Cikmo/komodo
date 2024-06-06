@@ -10,7 +10,7 @@ import discord
 from discord.ext import commands
 
 from src.bot.bot import Bot
-from src.config.logging_config import setup_logging
+from src.config.logging_conf import setup_logging
 from src.config.settings import get_settings
 
 if os.name != "nt":

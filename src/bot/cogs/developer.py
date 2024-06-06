@@ -5,7 +5,7 @@ Developer commands
 from discord.ext import commands
 
 from src.bot import Bot
-from src.tables import Nation
+from src.tables.nation import Nation
 
 
 class Developer(commands.Cog):

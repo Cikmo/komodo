@@ -2,7 +2,7 @@
 Here we define the database tables.
 """
 
-from piccolo.columns import Text, Serial
+from piccolo.columns import Serial, Text
 from piccolo.table import Table
 from piccolo.utils.pydantic import create_pydantic_model
 
