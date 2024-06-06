@@ -88,6 +88,16 @@ class LoggingSettings(BaseModel):
     file: LoggingFileSettings = LoggingFileSettings()
 
 
+class DatabaseSettings(BaseModel):
+    """Database settings."""
+
+    host: str = ""
+    port: int = 5432
+    database: str = ""
+    user: str = ""
+    password: str = ""
+
+
 class Settings(BaseSettings):
     """Application settings."""
 
@@ -96,6 +106,8 @@ class Settings(BaseSettings):
     discord: DiscordSettings = DiscordSettings()
 
     pnw: PnWSettings = PnWSettings()
+
+    database: DatabaseSettings = DatabaseSettings()
 
     logging: LoggingSettings = LoggingSettings()
 
@@ -208,10 +220,21 @@ class Settings(BaseSettings):
         print an error message and exit."""
         errors: list[str] = []
 
-        if self.discord.token == "":
-            errors.append("discord token")
-        if self.discord.client_secret == "":
-            errors.append("discord client_secret")
+        # List of required fields with their attribute paths
+        required_fields = [
+            "discord.token",
+            "discord.client_secret",
+            "database.database",
+            "database.host",
+            "database.user",
+        ]
+
+        for field_path in required_fields:
+            field_value = self
+            for attr in field_path.split("."):
+                field_value = getattr(field_value, attr)
+            if field_value == "":
+                errors.append(field_path)
 
         if any(errors):
             logger.error(
