@@ -5,7 +5,7 @@ Configuration for Piccolo ORM.
 from piccolo.conf.apps import AppRegistry
 from piccolo.engine.postgres import PostgresEngine
 
-from src.settings import get_settings
+from src.config.settings import get_settings
 
 settings = get_settings()
 
