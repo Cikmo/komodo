@@ -1,4 +1,6 @@
-### Guide: https://gist.github.com/EvieePy/7822af90858ef65012ea500bcecf1612
+"""
+Guide: https://gist.github.com/EvieePy/7822af90858ef65012ea500bcecf1612
+"""
 
 import logging
 import math
@@ -13,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class CommandErrorHandler(commands.Cog):
+    """Cog for handling command errors."""
+
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -35,7 +39,12 @@ class CommandErrorHandler(commands.Cog):
 
         cog = ctx.cog
         if cog:
-            if cog._get_overridden_method(cog.cog_command_error) is not None:
+            if (
+                cog._get_overridden_method(  # pylint: disable=protected-access
+                    cog.cog_command_error
+                )
+                is not None
+            ):
                 return
 
         ignored = (commands.CommandNotFound,)

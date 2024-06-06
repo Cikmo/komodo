@@ -15,7 +15,7 @@ from piccolo.engine import PostgresEngine, engine_finder
 
 logger = logging.getLogger(__name__)
 
-COG_PATH = "src/cogs"
+COG_PATH = "src/bot/cogs"
 
 
 class Bot(commands.Bot):
