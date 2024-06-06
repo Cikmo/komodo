@@ -22,7 +22,7 @@ from pydantic_settings import (
 
 logger = logging.getLogger(__name__)
 
-USE_FILE = os.getenv("USE_FILE", "true").lower() in ("true", "1", "t")
+USE_FILE = os.getenv("KOMODO_USE_FILE", "true").lower() in ("true", "1", "t")
 SETTINGS_FILE_PATH = "settings.dev.toml" if __debug__ else "settings.toml"
 
 
