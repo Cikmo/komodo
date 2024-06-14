@@ -1,3 +1,6 @@
+# This schema was originally downloaded from the playground at https://api.politicsandwar.com/graphql-playground
+# however, it has been modified to include proper nullability, and also remove deprecated fields.
+
 type Query {
   me: ApiKeyDetails
   treasures: [Treasure]
