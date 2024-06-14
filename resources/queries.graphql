@@ -4,6 +4,7 @@ query get_nations(
   $nation_id: [Int!]
   $nation_name: [String!]
   $discord_id: [String!]
+  $discord_name: [String!]
   $page_size: Int = 50
   $page: Int
 ) {
@@ -11,6 +12,7 @@ query get_nations(
     id: $nation_id
     nation_name: $nation_name
     discord_id: $discord_id
+    discord: $discord_name
     first: $page_size
     page: $page
   ) {

@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 from src.bot.converters import NationAPIModelConverter
-from src.pnw.api_v3 import NationFields
 from src.tables.nation import Nation
 from src.tables.user_settings import UserSettings
 
 if TYPE_CHECKING:
     from src.bot import Bot
+    from src.pnw.api_v3 import NationFields
 
 
 class User(commands.Cog):

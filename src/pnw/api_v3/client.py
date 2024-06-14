@@ -19,17 +19,19 @@ class Client(AsyncBaseClient):
         nation_id: Union[Optional[List[int]], UnsetType] = UNSET,
         nation_name: Union[Optional[List[str]], UnsetType] = UNSET,
         discord_id: Union[Optional[List[str]], UnsetType] = UNSET,
+        discord_name: Union[Optional[List[str]], UnsetType] = UNSET,
         page_size: Union[Optional[int], UnsetType] = UNSET,
         page: Union[Optional[int], UnsetType] = UNSET,
         **kwargs: Any
     ) -> GetNations:
         query = gql(
             """
-            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $page_size: Int = 50, $page: Int) {
+            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $page_size: Int = 50, $page: Int) {
               nations(
                 id: $nation_id
                 nation_name: $nation_name
                 discord_id: $discord_id
+                discord: $discord_name
                 first: $page_size
                 page: $page
               ) {
@@ -126,6 +128,7 @@ class Client(AsyncBaseClient):
             "nation_id": nation_id,
             "nation_name": nation_name,
             "discord_id": discord_id,
+            "discord_name": discord_name,
             "page_size": page_size,
             "page": page,
         }

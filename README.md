@@ -66,5 +66,5 @@ Please, for the love of god, use environment variables to set the settings in a 
 The API client is automatically generated using `ariadne_codegen`. This uses the `pnw_api_schema.graphql` file to generate the client and pydantic models. To update the client, you need to update the schema file. This can be done by running the following command:
 
 ```bash
-ariadne_codegen
+ariadne-codegen
 ```
