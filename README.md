@@ -1,6 +1,6 @@
 # Pathfinder for new Komodo
 
-A Politics and War discord bot.
+A Politics and War discord bot. In development and constant breaking changes.
 
 ## Extrenal Requirements
 
