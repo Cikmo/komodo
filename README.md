@@ -59,56 +59,12 @@ It is recommended to run the bot in "prod" mode when running it in a production 
 
 Please, for the love of god, use environment variables to set the settings in a production environment. This is much more secure than using a settings file, and sooo much easier to manage if you're using something like Docker.
 
-## TODO:
+## Development
 
-- Add an argument to the run command to use environment variables instead of the settings file
-- Add an argument to the run command to run migrations
+### PnW API
 
-To create pydantic models from graphql schema:
-
-```bash
-datamodel-codegen --input schema.graphql --input-file-type graphql --output model.py
-```
-
-or
+The API client is automatically generated using `ariadne_codegen`. This uses the `pnw_api_schema.graphql` file to generate the client and pydantic models. To update the client, you need to update the schema file. This can be done by running the following command:
 
 ```bash
 ariadne_codegen
 ```
-
-### Progress on fixing nullable types in the api schema:
-
-- [x] ApiKeyDetails
-- [x] ApiKeyPermissions
-- [x] Nation
-- [x] City
-- [x] Treasure
-- [x] Alliance
-- [x] AlliancePosition
-- [x] War
-- [x] WarAttack
-- [x] GameInfo
-- [x] Radiation
-- [x] TopTradeInfo
-- [x] TopTradeResourceInfo
-- [x] Trade
-- [x] NationResourceStat
-- [x] Tradeprice
-- [x] Bounty
-- [x] Treaty
-- [x] Bankrec
-- [x] TaxBracket
-- [x] TreasureTrade
-- [x] Embargo
-- [x] ResourceStat
-- [x] ActivityStat
-- [x] BannedNation
-- [x] Bulletin
-- [x] BulletinReply
-- [x] CityInfraDamage
-- [x] Award
-- [x] BBTeam
-- [x] BBGame
-- [x] BBPlayer
-- [x] Color
-- [ ] ... and so on
