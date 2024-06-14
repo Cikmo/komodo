@@ -17,6 +17,15 @@ if TYPE_CHECKING:
     from src.pnw.api_v3 import NationFields
 
 
+async def get_nation_from_discord_id(ctx: commands.Context[Bot]) -> NationFields | None:
+    """Get a single nation from a discord id. This is a helper function to
+    give the register command a default value."""
+    nations = (
+        await ctx.bot.api_v3.get_nations(discord_id=[str(ctx.author.id)])
+    ).nations.data
+    return nations[0] if nations else None
+
+
 class User(commands.Cog):
     """For user specific commands like registering and user settings."""
 
@@ -27,9 +36,11 @@ class User(commands.Cog):
     async def register(
         self,
         ctx: commands.Context[Bot],
-        nation: NationFields = commands.parameter(converter=NationAPIModelConverter),
+        nation: NationFields | None = commands.parameter(
+            converter=NationAPIModelConverter, default=get_nation_from_discord_id
+        ),
     ):
-        """Ping the bot."""
+        """Register your nation with the bot."""
 
         if not nation:
             await ctx.reply(
