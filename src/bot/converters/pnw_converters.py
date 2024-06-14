@@ -8,7 +8,7 @@ from piccolo.query.functions import Lower
 
 from src.bot import Bot
 from src.pnw.api_v3.get_nations import NationFields
-from src.tables.nation import Nation
+from src.tables.pnw import Nation
 
 logger = logging.getLogger(__name__)
 

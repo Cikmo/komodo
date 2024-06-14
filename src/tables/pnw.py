@@ -2,7 +2,9 @@
 Here we define the database tables.
 """
 
-from typing import Self, Sequence, overload
+from __future__ import annotations
+
+from typing import NoReturn, Self, Sequence, overload
 
 from piccolo.columns import (
     BigInt,
@@ -21,6 +23,100 @@ from pydantic import AwareDatetime, Field
 
 from src.pnw.api_v3 import NationFields
 from src.tables.enums import Color, Continent, DomesticPolicy, WarPolicy
+
+
+class Alliance(Table):
+    """
+    A table to store information about alliances in the game.
+    """
+
+    id = Integer(primary_key=True)
+    name = Text()
+    acronym = Text()
+    score = Real()
+    color = Text(choices=Color)
+    date_created = Timestamptz(default=None)
+    average_score = Real()
+    accepts_members = Boolean()
+    flag_url = Text()
+    forum_link = Text()
+    discord_link = Text()
+    wiki_link = Text()
+    rank = Integer()
+
+    # reverse foreign keys
+    @property
+    def nations(self):
+        """
+        Returns a query object for all the members of this alliance.
+        This includes applicants.
+        """
+        return Nation.objects().where(Nation.alliance == self.id)
+
+    @property
+    def treaties(self) -> NoReturn:
+        """
+        Returns a query object for all the treaties of this alliance.
+        """
+        raise NotImplementedError
+
+    @property
+    def positions(self) -> NoReturn:
+        """
+        Returns a query object for all the positions of this alliance.
+        """
+        raise NotImplementedError
+
+    @property
+    def bank_records(self) -> NoReturn:
+        """
+        Returns a query object for all the bank records of this alliance.
+        """
+        raise NotImplementedError
+
+    @property
+    def tax_records(self) -> NoReturn:
+        """
+        Returns a query object for all the tax records of this alliance.
+        """
+        raise NotImplementedError
+
+    @property
+    def tax_brackets(self) -> NoReturn:
+        """
+        Returns a query object for all the tax brackets of this alliance.
+        """
+        raise NotImplementedError
+
+    @property
+    def wars(self) -> NoReturn:
+        """
+        Returns a query object for all the wars of this alliance.
+        """
+        raise NotImplementedError
+
+    # def from_api_v3(cls, model: AllianceFields) -> Self:
+    #     """Create a new alliance from the API v3 data.
+
+    #     Args:
+    #         data: The API v3 alliance to convert.
+
+    #     Returns:
+    #         Self: _description_
+    #     """
+    #     converted_model = AllianceModel.model_validate(model.model_dump())
+    #     return cls(**converted_model.model_dump())
+
+
+class AllianceModel(create_pydantic_model(Alliance)):
+    """
+    A pydantic model of the Alliance table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_created: AwareDatetime = Field(alias="date")
+    accepts_members: bool = Field(alias="accept_members")
+    flag_url: str = Field(alias="flag")
 
 
 class Nation(Table):
@@ -65,13 +161,9 @@ class Nation(Table):
     defensive_war_count = Integer()  # API name: defensive_wars_count
     alliance_join_date = Timestamptz(default=None)
 
-    # alliance = ForeignKey(references="Alliance", on_delete=OnDelete.set_null)
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
     # alliance_position = ForeignKey(
     #    references="AlliancePosition", on_delete=OnDelete.set_null
-    # )
-
-    # color = ForeignKey(
-    #    references="Color"  # enum, or a foreign key to a color table?
     # )
 
     # tax_bracket = ForeignKey(

@@ -3,7 +3,7 @@
 from piccolo.columns import BigInt, ForeignKey, Text
 from piccolo.table import Table
 
-from src.tables.nation import Nation
+from src.tables.pnw import Nation
 
 
 class UserSettings(Table):

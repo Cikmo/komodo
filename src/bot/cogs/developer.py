@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from src.bot.converters import NationConverter
 from src.bot.persistent_view import PersistentView
 from src.bot.stateful_embed import StatefulEmbed
-from src.tables.nation import Nation
+from src.tables.pnw import Nation
 
 if TYPE_CHECKING:
     from src.bot import Bot

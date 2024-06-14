@@ -68,3 +68,17 @@ The API client is automatically generated using `ariadne_codegen`. This uses the
 ```bash
 ariadne-codegen
 ```
+
+### Database
+
+The database is managed using Piccolo. To create a new migration, run the following command:
+
+```bash
+piccolo migrations new komodo --auto
+```
+
+This will create a new migration file in the `migrations` directory. To apply the migration, run the following command:
+
+```bash
+piccolo migrations forwards komodo
+```
