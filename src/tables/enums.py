@@ -72,3 +72,11 @@ class TreatyType(StrEnum):
     NAP = "NAP"
     NPT = "NPT"
     EXTENSION = "Extension"
+
+
+class WarType(StrEnum):
+    """Enum representing the types of wars in the game."""
+
+    ORDINARY = "ORDINARY"
+    ATTRITION = "ATTRITION"
+    RAID = "RAID"

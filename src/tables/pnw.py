@@ -22,7 +22,14 @@ from piccolo.utils.pydantic import create_pydantic_model
 from pydantic import AwareDatetime, Field
 
 from src.pnw.api_v3 import NationFields
-from src.tables.enums import Color, Continent, DomesticPolicy, TreatyType, WarPolicy
+from src.tables.enums import (
+    Color,
+    Continent,
+    DomesticPolicy,
+    TreatyType,
+    WarPolicy,
+    WarType,
+)
 
 
 class Alliance(Table):
@@ -69,26 +76,29 @@ class Alliance(Table):
         """
         return AlliancePosition.objects().where(AlliancePosition.alliance == self.id)
 
-    @property
-    def bank_records(self) -> NoReturn:
-        """
-        Returns a query object for all the bank records of this alliance.
-        """
-        raise NotImplementedError
+    # @property
+    # def bank_records(self) -> NoReturn:
+    #     """
+    #     Returns a query object for all the bank records of this alliance.
+    #     """
+    #     raise NotImplementedError
+    # I'm not sure if I should store bank records in the database
+    # There might not be a point to it. I'll leave it out until I start working on banking.
+
+    # @property
+    # def tax_records(self) -> NoReturn:
+    #     """
+    #     Returns a query object for all the tax records of this alliance.
+    #     """
+    #     raise NotImplementedError
+    # Same as bank records
 
     @property
-    def tax_records(self) -> NoReturn:
-        """
-        Returns a query object for all the tax records of this alliance.
-        """
-        raise NotImplementedError
-
-    @property
-    def tax_brackets(self) -> NoReturn:
+    def tax_brackets(self):
         """
         Returns a query object for all the tax brackets of this alliance.
         """
-        raise NotImplementedError
+        return TaxBracket.objects().where(TaxBracket.alliance == self.id)
 
     @property
     def wars(self) -> NoReturn:
@@ -144,41 +154,6 @@ class TreatyModel(create_pydantic_model(Treaty)):
     """
 
     date_accepted: AwareDatetime | None = Field(alias="date")
-
-
-class AlliancePosition(Table):
-    """
-    A table to store information about the positions in an alliance.
-    """
-
-    id = Integer(primary_key=True)
-    date_created = Timestamptz(default=None)
-    date_modified = Timestamptz(default=None)
-    name = Text()
-    position_level = Integer()
-    default_leader = Boolean()
-    default_heir = Boolean()
-    default_officer = Boolean()
-    default_member = Boolean()
-    permission_bits = Integer()
-
-    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
-    creator = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
-    last_editor = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
-
-
-class AlliancePositionModel(create_pydantic_model(AlliancePosition)):
-    """
-    A pydantic model of the AlliancePosition table. Has alias fields to match the API v3 model,
-    meaning that you can pass the API v3 model directly to be validated here.
-    """
-
-    date_created: AwareDatetime | None = Field(alias="date")
-    default_leader: bool = Field(alias="leader")
-    default_heir: bool = Field(alias="heir")
-    default_officer: bool = Field(alias="officer")
-    default_member: bool = Field(alias="member")
-    permission_bits: int = Field(alias="permissions")
 
 
 class Nation(Table):
@@ -351,13 +326,151 @@ class City(Table):
     nation = ForeignKey(references=Nation, null=False, on_delete=OnDelete.cascade)
 
 
-class BankRecord(Table):
+# class BankRecord(Table):
+#     """
+#     A table to store bank records for alliances.
+#     """
+
+#     id = Integer(primary_key=True)
+#     date = Timestamptz(default=None)
+
+#     # how do i handle sender / receiver?
+#     # what if one of them is deleted? Do I just store the ID?
+#     # is there even a point to storing bank records at all?
+#     # maybe I should just fetch them from the API when needed
+
+
+class TaxBracket(Table):
     """
-    A table to store bank records for alliances.
+    A table to store tax brackets for alliances.
     """
 
     id = Integer(primary_key=True)
-    date = Timestamptz(default=None)
+    name = Text()
+    date_created = Timestamptz(default=None)
+    date_modified = Timestamptz(default=None)
+    money_tax_rate = Integer()
+    resource_tax_rate = Integer()
 
-    # how do i handle sender / receiver?
-    # what if a sender is delted? Do I just store the ID?
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+    creator = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    last_editor = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+
+
+class AlliancePosition(Table):
+    """
+    A table to store information about the positions in an alliance.
+    """
+
+    id = Integer(primary_key=True)
+    date_created = Timestamptz(default=None)
+    date_modified = Timestamptz(default=None)
+    name = Text()
+    position_level = Integer()
+    default_leader = Boolean()
+    default_heir = Boolean()
+    default_officer = Boolean()
+    default_member = Boolean()
+    permission_bits = Integer()
+
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+    creator = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
+    last_editor = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
+
+
+class AlliancePositionModel(create_pydantic_model(AlliancePosition)):
+    """
+    A pydantic model of the AlliancePosition table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_created: AwareDatetime | None = Field(alias="date")
+    default_leader: bool = Field(alias="leader")
+    default_heir: bool = Field(alias="heir")
+    default_officer: bool = Field(alias="officer")
+    default_member: bool = Field(alias="member")
+    permission_bits: int = Field(alias="permissions")
+
+
+class TaxBracketModel(create_pydantic_model(TaxBracket)):
+    """
+    A pydantic model of the TaxBracket table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_created: AwareDatetime | None = Field(alias="date")
+    name: str = Field(alias="bracket_name")
+    money_tax_rate: int = Field(alias="tax_rate")
+
+
+class War(Table):
+    """
+    A table to store information about wars in the game.
+    """
+
+    id = Integer(primary_key=True)
+    date_started = Timestamptz(default=None)
+    date_ended = Timestamptz(default=None, null=True)
+    reason = Text()
+    war_type = Text(choices=WarType)
+    turns_left = Integer()
+    attacker_action_points = Integer()
+    defender_action_points = Integer()
+    attacker_offering_peace = Boolean()
+    defender_offering_peace = Boolean()
+    attacker_resistance = Integer()
+    defender_resistance = Integer()
+    attacker_fortified = Boolean()
+    defender_fortified = Boolean()
+    attacker_gasoline_used = Integer()
+    defender_gasoline_used = Integer()
+    attacker_munitions_used = Integer()
+    defender_munitions_used = Integer()
+    attacker_aluminum_used = Integer()
+    defender_aluminum_used = Integer()
+    attacker_steel_used = Integer()
+    defender_steel_used = Integer()
+    attacker_infra_destroyed = Integer()
+    defender_infra_destroyed = Integer()
+    attacker_money_looted = Integer()
+    defender_money_looted = Integer()
+    attacker_soldiers_lost = Integer()
+    defender_soldiers_lost = Integer()
+    attacker_tanks_lost = Integer()
+    defender_tanks_lost = Integer()
+    attacker_aircraft_lost = Integer()
+    defender_aircraft_lost = Integer()
+    attacker_ships_lost = Integer()
+    defender_ships_lost = Integer()
+    attacker_missiles_used = Integer()
+    defender_missiles_used = Integer()
+    attacker_nukes_used = Integer()
+    defender_nukes_used = Integer()
+    attacker_infra_destroyed_value = Integer()
+    defender_infra_destroyed_value = Integer()
+
+    attacker_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    defender_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    ground_control_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    air_superiority_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    naval_blockade_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    winner_nation = ForeignKey(references=Nation, on_delete=OnDelete.set_null)
+    attacker_alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
+    defender_alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
+
+
+class WarModel(create_pydantic_model(War)):
+    """
+    A pydantic model of the War table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_started: AwareDatetime | None = Field(alias="date")
+    date_ended: AwareDatetime | None = Field(alias="end_date")
+    ground_control_nation: int | None = Field(alias="ground_control")
+    air_superiority_nation: int | None = Field(alias="air_superiority")
+    naval_blockade_nation: int | None = Field(alias="naval_blockade")
+    winner_nation: int | None = Field(alias="winner_id")
+    attacker_nation: int = Field(alias="att_id")
+    defender_nation: int = Field(alias="def_id")
+    # TODO: I didn't do all of them yet.
