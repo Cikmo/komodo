@@ -22,7 +22,7 @@ from piccolo.utils.pydantic import create_pydantic_model
 from pydantic import AwareDatetime, Field
 
 from src.pnw.api_v3 import NationFields
-from src.tables.enums import Color, Continent, DomesticPolicy, WarPolicy
+from src.tables.enums import Color, Continent, DomesticPolicy, TreatyType, WarPolicy
 
 
 class Alliance(Table):
@@ -54,18 +54,20 @@ class Alliance(Table):
         return Nation.objects().where(Nation.alliance == self.id)
 
     @property
-    def treaties(self) -> NoReturn:
+    def treaties(self):
         """
         Returns a query object for all the treaties of this alliance.
         """
-        raise NotImplementedError
+        return Treaty.objects().where(
+            (Treaty.alliance_1 == self.id) | (Treaty.alliance_2 == self.id)
+        )
 
     @property
-    def positions(self) -> NoReturn:
+    def positions(self):
         """
-        Returns a query object for all the positions of this alliance.
+        Returns a query object for all the positions in this alliance.
         """
-        raise NotImplementedError
+        return AlliancePosition.objects().where(AlliancePosition.alliance == self.id)
 
     @property
     def bank_records(self) -> NoReturn:
@@ -117,6 +119,66 @@ class AllianceModel(create_pydantic_model(Alliance)):
     date_created: AwareDatetime = Field(alias="date")
     accepts_members: bool = Field(alias="accept_members")
     flag_url: str = Field(alias="flag")
+
+
+class Treaty(Table):
+    """
+    A table to store information about treaties between alliances.
+    """
+
+    id = Integer(primary_key=True)
+    date_accepted = Timestamptz(default=None, null=True)
+    treaty_type = Text(choices=TreatyType)
+    treaty_url = Text()
+    turns_left = Integer()
+    approved = Boolean()
+
+    alliance_1 = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+    alliance_2 = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+
+
+class TreatyModel(create_pydantic_model(Treaty)):
+    """
+    A pydantic model of the Treaty table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_accepted: AwareDatetime | None = Field(alias="date")
+
+
+class AlliancePosition(Table):
+    """
+    A table to store information about the positions in an alliance.
+    """
+
+    id = Integer(primary_key=True)
+    date_created = Timestamptz(default=None)
+    date_modified = Timestamptz(default=None)
+    name = Text()
+    position_level = Integer()
+    default_leader = Boolean()
+    default_heir = Boolean()
+    default_officer = Boolean()
+    default_member = Boolean()
+    permission_bits = Integer()
+
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+    creator = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
+    last_editor = ForeignKey(references="Nation", on_delete=OnDelete.set_null)
+
+
+class AlliancePositionModel(create_pydantic_model(AlliancePosition)):
+    """
+    A pydantic model of the AlliancePosition table. Has alias fields to match the API v3 model,
+    meaning that you can pass the API v3 model directly to be validated here.
+    """
+
+    date_created: AwareDatetime | None = Field(alias="date")
+    default_leader: bool = Field(alias="leader")
+    default_heir: bool = Field(alias="heir")
+    default_officer: bool = Field(alias="officer")
+    default_member: bool = Field(alias="member")
+    permission_bits: int = Field(alias="permissions")
 
 
 class Nation(Table):
@@ -287,3 +349,15 @@ class City(Table):
 
     # Foreign Keys
     nation = ForeignKey(references=Nation, null=False, on_delete=OnDelete.cascade)
+
+
+class BankRecord(Table):
+    """
+    A table to store bank records for alliances.
+    """
+
+    id = Integer(primary_key=True)
+    date = Timestamptz(default=None)
+
+    # how do i handle sender / receiver?
+    # what if a sender is delted? Do I just store the ID?

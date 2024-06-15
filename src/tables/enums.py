@@ -58,3 +58,17 @@ class DomesticPolicy(StrEnum):
     IMPERIALISM = "IMPERIALISM"
     URBANIZATION = "URBANIZATION"
     RAPID_EXPANSION = "RAPID_EXPANSION"
+
+
+class TreatyType(StrEnum):
+    """Enum representing the types of alliance treaties in the game."""
+
+    MDP = "MDP"
+    MDOAP = "MDoAP"
+    ODP = "ODP"
+    ODOAP = "ODoAP"
+    PROTECTORATE = "Protectorate"
+    PIAT = "PIAT"
+    NAP = "NAP"
+    NPT = "NPT"
+    EXTENSION = "Extension"
