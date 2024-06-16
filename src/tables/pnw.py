@@ -7,7 +7,7 @@ from __future__ import annotations
 import difflib
 import inspect
 
-#from abc import abstractmethod
+# from abc import abstractmethod
 from typing import Any, Optional
 
 from piccolo.columns import Integer, Text, Timestamp, Varchar
@@ -20,9 +20,10 @@ from pydantic.fields import FieldInfo
 
 class PnwTable(Table):
     """
-    A base class for all api based pnw tables.
+    A base class for all API-based PNW tables.
     """
 
+    # This is for type hinting. The actual model is created in the __init_subclass__ method.
     pydantic_model: type[BaseModel]
 
     def __init_subclass__(
@@ -36,49 +37,41 @@ class PnwTable(Table):
         super().__init_subclass__(
             tablename=tablename, db=db, tags=tags, help_text=help_text, schema=schema
         )
+        cls._enforce_abstract_methods()
+        cls._validate_and_create_pydantic_model()
 
-        # Enforce that all abstract methods are implemented
-        abstract_methods = set(
+    @classmethod
+    def _enforce_abstract_methods(cls):
+        """
+        Ensure that all abstract methods are implemented.
+        """
+        abstract_methods = {
             name
             for name, value in inspect.getmembers(cls)
             if getattr(value, "__isabstractmethod__", False)
-        )
+        }
 
         if abstract_methods:
             raise TypeError(
-                f"Can't instantiate class {cls.__name__} without implementing abstract methods: "
+                f"Cannot instantiate class {cls.__name__} without implementing abstract methods: "
                 + ", ".join(abstract_methods)
             )
 
-        # Create a pydantic model for the table
-        fields = {
-            name: (field_type, field)
-            for name, (field_type, field) in cls.pydantic_overrides().items()
-        }
+    @classmethod
+    def _validate_and_create_pydantic_model(cls):
+        """
+        Validate the pydantic overrides and create the pydantic model for the table.
+        """
+        fields = cls._get_pydantic_fields()
 
-        # make sure all field names in overrides are valid, by checking cls._meta.colums[i]._meta.name. It is
+        invalid_fields, similar_fields = cls._find_invalid_fields(list(fields.keys()))
 
-        invalid_fields: list[str] = []
-        for field_name in fields.keys():
-            if not any(column._meta.name == field_name for column in cls._meta.columns): # type: ignore
-                invalid_fields.append(field_name)
         if invalid_fields:
-            similar_fields = []
-            for field_name in invalid_fields:
-                similar_fields.append(
-                    difflib.get_close_matches(
-                        field_name, [column._meta.name for column in cls._meta.columns] # type: ignore
-                    )
+            raise ValueError(
+                cls._construct_invalid_fields_error_message(
+                    invalid_fields, similar_fields
                 )
-
-            err_message = f"PnwTable {cls.__name__} has invalid field names in pydantic_overrides: "
-            for i, field_name in enumerate(invalid_fields):
-                err_message += f"'{field_name}'"
-                if similar_fields[i]:
-                    err_message += f" (did you mean to use {', '.join(f'\'{field}\'' for field in similar_fields[i])}?)"
-                err_message += ", "
-            err_message = err_message[:-2]  # remove the last comma and space
-            raise ValueError(err_message)
+            )
 
         cls.pydantic_model = create_model(
             f"{cls.__name__}Pydantic",
@@ -92,12 +85,64 @@ class PnwTable(Table):
         )
 
     @classmethod
+    def _get_pydantic_fields(cls) -> dict[str, tuple[type, FieldInfo]]:
+        """
+        Retrieve the pydantic fields from the overrides.
+        """
+        return {
+            name: (field_type, field)
+            for name, (field_type, field) in cls.pydantic_overrides().items()
+        }
+
+    @classmethod
+    def _find_invalid_fields(
+        cls, field_names: list[str]
+    ) -> tuple[list[str], list[list[str]]]:
+        """
+        Identify invalid fields and suggest similar field names if available.
+        """
+        invalid_fields = []
+        similar_fields = []
+
+        column_names = [column._meta.name for column in cls._meta.columns]  # type: ignore # pylint: disable=protected-access
+
+        for field_name in field_names:
+            if field_name not in column_names:
+                invalid_fields.append(field_name)
+                similar_fields.append(
+                    difflib.get_close_matches(field_name, column_names)
+                )
+
+        return invalid_fields, similar_fields
+
+    @classmethod
+    def _construct_invalid_fields_error_message(
+        cls, invalid_fields: list[str], similar_fields: list[list[str]]
+    ) -> str:
+        """
+        Construct a detailed error message for invalid fields.
+        """
+        err_message = (
+            f"PnwTable {cls.__name__} has invalid field names in pydantic_overrides: "
+        )
+
+        for i, field_name in enumerate(invalid_fields):
+            err_message += f"'{field_name}'"
+            if similar_fields[i]:
+                err_message += f" (did you mean {', '.join(f"'{field}'" for field in similar_fields[i])}?)"
+            err_message += ", "
+
+        return err_message.rstrip(", ")
+
+    ### Methods that can be overridden by subclasses ###
+
+    @classmethod
     def pydantic_overrides(cls) -> dict[str, tuple[type, FieldInfo]]:
         """
         A dictionary of field overrides for the pydantic model.
 
         The format is: `{<field_name>: (<type>, Field(...))}`
-        
+
         To create an alias for a field, you can do:
         ```
         {
@@ -115,7 +160,6 @@ class Test(PnwTable):
 
     id = Integer(primary_key=True)
     username = Text()
-    usernime = Text()
     password = Varchar(length=100)
     created_at = Timestamp()
 
@@ -130,5 +174,15 @@ class Test(PnwTable):
         }
 
 
-class Nation:
+test_data = {
+    "id": 1,
+    "name": "test",
+    "password": "test",
+    "created_at": "2021-01-01T00:00:00",
+}
+
+print(Test.pydantic_model(**test_data).model_dump_json())
+
+
+class Nation:  # pylint: disable=empty-docstring
     """"""

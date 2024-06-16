@@ -12,6 +12,7 @@ discord-py = "^2.3.2"
 piccolo = { extras = ["all"], version = "^1.7.0" }
 pylint = "^3.2.3"
 ariadne-codegen = "^0.13.0"
+black = "^24.4.2"
 
 
 [build-system]
