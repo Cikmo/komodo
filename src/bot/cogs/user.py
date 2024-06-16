@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 from discord.ext import commands
 
 from src.bot.converters import NationAPIModelConverter
-from src.tables.pnw import Nation
-from src.tables.user_settings import UserSettings
+
+# from src.tables.pnw import Nation
+# from src.tables.user_settings import UserSettings
 
 if TYPE_CHECKING:
     from src.bot import Bot
