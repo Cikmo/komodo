@@ -14,7 +14,8 @@ APP_CONFIG = AppConfig(
     app_name="komodo",
     migrations_folder_path=os.path.join(CURRENT_DIRECTORY, "migrations"),
     table_classes=table_finder(
-        modules=["src.tables.pnw", "src.tables.user_settings"], exclude_imported=True
+        modules=["src.database.tables.pnw", "src.database.tables.user_settings"],
+        exclude_imported=True,
     ),
     migration_dependencies=[],
     commands=[],

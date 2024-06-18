@@ -12,10 +12,8 @@ import discord
 from discord.ext import commands
 from pydantic import BaseModel
 
-from src.bot.converters import NationConverter
 from src.bot.persistent_view import PersistentView
 from src.bot.stateful_embed import StatefulEmbed
-from src.tables.pnw import Nation
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -108,37 +106,37 @@ class Developer(commands.Cog):
 
         await ctx.reply(embed=embed, view=self.confirm_view)
 
-    @dev.command()
-    async def create(self, ctx: commands.Context[Bot], nation_name: str):
-        """Ping the bot."""
-        nation_data = (
-            await self.bot.api_v3.get_nations(nation_name=[nation_name])
-        ).nations.data
+    # @dev.command()
+    # async def create(self, ctx: commands.Context[Bot], nation_name: str):
+    #     """Ping the bot."""
+    #     nation_data = (
+    #         await self.bot.api_v3.get_nations(nation_name=[nation_name])
+    #     ).nations.data
 
-        nation_from_api = nation_data[0] if nation_data else None
+    #     nation_from_api = nation_data[0] if nation_data else None
 
-        if not nation_from_api:
-            await ctx.reply("Nation not found.")
-            return
+    #     if not nation_from_api:
+    #         await ctx.reply("Nation not found.")
+    #         return
 
-        nation = Nation.from_api_v3(nation_from_api)
+    #     nation = Nation.from_api_v3(nation_from_api)
 
-        await nation.save()
+    #     await nation.save()
 
-        await ctx.reply(f"Saved {nation_name} to the database.")
+    #     await ctx.reply(f"Saved {nation_name} to the database.")
 
-    @dev.command()
-    async def who(
-        self,
-        ctx: commands.Context[Bot],
-        nation: Nation = commands.parameter(converter=NationConverter),
-    ):
-        """Look up a nation in the database."""
-        if not nation:
-            await ctx.reply("Nation not found.")
-            return
+    # @dev.command()
+    # async def who(
+    #     self,
+    #     ctx: commands.Context[Bot],
+    #     nation: Nation = commands.parameter(converter=NationConverter),
+    # ):
+    #     """Look up a nation in the database."""
+    #     if not nation:
+    #         await ctx.reply("Nation not found.")
+    #         return
 
-        await ctx.reply(f"Found {nation.name} in the database.")
+    #     await ctx.reply(f"Found {nation.name} in the database.")
 
     @dev.command()
     async def withdraw(

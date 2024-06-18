@@ -7,8 +7,8 @@ from discord.ext import commands
 from piccolo.query.functions import Lower
 
 from src.bot import Bot
+from src.database.tables.pnw import Nation
 from src.pnw.api_v3.get_nations import NationFields
-from src.tables.pnw import Nation
 
 logger = logging.getLogger(__name__)
 

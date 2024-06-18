@@ -21,8 +21,7 @@ from piccolo.table import Table
 from piccolo.utils.pydantic import create_pydantic_model
 from pydantic import AwareDatetime, Field
 
-from src.pnw.api_v3 import NationFields
-from src.tables.enums import (
+from src.database.enums import (
     Color,
     Continent,
     DomesticPolicy,
@@ -30,6 +29,7 @@ from src.tables.enums import (
     WarPolicy,
     WarType,
 )
+from src.pnw.api_v3 import NationFields
 
 
 class Alliance(Table):
