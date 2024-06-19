@@ -2,8 +2,10 @@
 
 A Politics and War discord bot. In development and constant breaking changes.
 
-## Extrenal Requirements
+Have a good day, reader.
 
+## Extrenal Requirements
+## External Requirements
 - Poetry
 - Postgres
 
