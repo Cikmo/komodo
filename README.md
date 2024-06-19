@@ -82,3 +82,5 @@ This will create a new migration file in the `migrations` directory. To apply th
 ```bash
 piccolo migrations forwards komodo
 ```
+
+Remember to always create a new migration after changing a database table!
