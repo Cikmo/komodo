@@ -2,6 +2,8 @@
 
 A Politics and War discord bot. In development and constant breaking changes.
 
+Have a good day, reader.
+
 ## Extrenal Requirements
 
 - Poetry
