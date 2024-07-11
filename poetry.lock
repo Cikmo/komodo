@@ -1059,13 +1059,13 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "piccolo"
-version = "1.13.0"
+version = "1.13.1"
 description = "A fast, user friendly ORM and query builder which supports asyncio."
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "piccolo-1.13.0-py3-none-any.whl", hash = "sha256:33c2dd9948af41718592394c06b4e02cee65bd73f3ac7e39384fc978bcadd0c1"},
-    {file = "piccolo-1.13.0.tar.gz", hash = "sha256:5e71782b184f561394cbb5bfd584b4acfe084145f523b185d6cf9ffcfe2003a9"},
+    {file = "piccolo-1.13.1-py3-none-any.whl", hash = "sha256:3c769c46844b9e1127cb12256d8e9b8535eb62fddaabd2c8f3b7734e37ed237e"},
+    {file = "piccolo-1.13.1.tar.gz", hash = "sha256:9c98557f9ca2ab547de0f3c6008fa6cb47bbcf5e8012ffb8219c0d01d52369c1"},
 ]
 
 [package.dependencies]
@@ -1624,4 +1624,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.13"
-content-hash = "3c17e8836b414182e22323a117050f57f3ebc3fe3d69862798bbaf11c9c08510"
+content-hash = "025fccacac69df01e655f321636ee1fec29ad8d6b46ffc441fe46547b65c6c55"
