@@ -9,7 +9,7 @@ pydantic = "^2.8.2"
 pydantic-settings = "^2.3.4"
 tomli-w = "^1.0.0"
 discord-py = "^2.4.0"
-piccolo = { extras = ["all"], version = "^1.13.1" }
+piccolo = { extras = ["all"], version = "^1.15.0" }
 pylint = "^3.2.5"
 ariadne-codegen = "^0.13.0"
 black = "^24.4.2"
