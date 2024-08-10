@@ -172,13 +172,13 @@ trio = ["trio (>=0.23)"]
 
 [[package]]
 name = "ariadne-codegen"
-version = "0.13.0"
+version = "0.14.0"
 description = "Generate fully typed GraphQL client from schema, queries and mutations!"
 optional = false
 python-versions = "*"
 files = [
-    {file = "ariadne_codegen-0.13.0-py2.py3-none-any.whl", hash = "sha256:61d0be4b1ba711bc5df35aaf0fa61d04cf4ea6f25a0038b687f845ab4f859a23"},
-    {file = "ariadne_codegen-0.13.0.tar.gz", hash = "sha256:52aa67037dcd88a2f6013118e69ba0ed35a49f37312668a1969907f0e9c9bf8b"},
+    {file = "ariadne_codegen-0.14.0-py2.py3-none-any.whl", hash = "sha256:e0553960bd298ddc49aeeb748a0be3a37acbdfdee7d7c26fce7154715fa826e0"},
+    {file = "ariadne_codegen-0.14.0.tar.gz", hash = "sha256:d5b15470195c3858b88a2bae855b5c04602ffae40228077b6cfb26a57d3f14f6"},
 ]
 
 [package.dependencies]
@@ -1637,4 +1637,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.13"
-content-hash = "96f816666fa4505830adbe343d5c5e7e399019c5c0933ad42501fea388b4630b"
+content-hash = "a4dde979afc8235a30266099e5b927f64bd6df7f66ef8aa70f6ce0bf8d166ea4"
