@@ -9,10 +9,10 @@ import pathlib
 import sys
 from typing import Generator
 
-import discord
-from discord.ext import commands
 from piccolo.engine import PostgresEngine, engine_finder
 
+import discord
+from discord.ext import commands
 from src.config.settings import get_settings
 from src.pnw.api_v3 import Client
 
