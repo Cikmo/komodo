@@ -8,9 +8,10 @@ import urllib.parse
 from abc import ABC
 from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, get_args, get_origin
 
-import discord
 import pydantic
 from pydantic import BaseModel
+
+import discord
 
 if TYPE_CHECKING:
     from discord.types.embed import EmbedType

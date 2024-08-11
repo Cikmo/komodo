@@ -8,12 +8,12 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Awaitable, Self
 
-import discord
-from discord.ext import commands
 from pydantic import BaseModel
 
-from src.bot.persistent_view import PersistentView
-from src.bot.stateful_embed import StatefulEmbed
+import discord
+from discord.ext import commands
+from src.discord.persistent_view import PersistentView
+from src.discord.stateful_embed import StatefulEmbed
 
 if TYPE_CHECKING:
     from src.bot import Bot
