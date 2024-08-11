@@ -7,8 +7,6 @@ import logging
 import os
 
 import discord
-from discord.ext import commands
-
 from src.bot.bot import Bot
 from src.config.logging_conf import setup_logging
 from src.config.settings import get_settings
@@ -30,9 +28,7 @@ def main():
 def run_bot():
     """Runs the discord bot. Only returns when the bot is stopped."""
     bot = Bot(
-        command_prefix=commands.when_mentioned_or(
-            get_settings().discord.default_command_prefix
-        ),
+        command_prefix=get_settings().discord.default_command_prefix,
         intents=get_discord_intents(),
     )
 

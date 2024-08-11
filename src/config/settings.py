@@ -46,6 +46,12 @@ class PnWSettings(BaseModel):
     password: str = ""
 
 
+class AISettings(BaseModel):
+    """AI settings."""
+
+    openai_key: str = ""
+
+
 class LoggingStreamSettings(BaseModel):
     """Logging stream settings."""
 
@@ -106,6 +112,8 @@ class Settings(BaseSettings):
     discord: DiscordSettings = DiscordSettings()
 
     pnw: PnWSettings = PnWSettings()
+
+    ai: AISettings = AISettings()
 
     database: DatabaseSettings = DatabaseSettings()
 
