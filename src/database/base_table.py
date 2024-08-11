@@ -33,6 +33,55 @@ from pydantic.fields import FieldInfo
 class BaseTable(Table):
     """
     A base class for all Piccolo tables in this project.
+
+    This class provides foundational functionality for creating Piccolo tables
+    with integrated Pydantic models. It enforces the implementation of abstract
+    methods and validates custom Pydantic field overrides, ensuring consistency
+    and type safety across your models.
+
+    ## Usage
+
+    ### What this class can do:
+    - **Abstract Method Enforcement:** Ensures that any subclass implements required abstract methods.
+    - **Pydantic Model Integration:** Automatically creates a Pydantic model corresponding to the table schema, allowing for seamless data validation and serialization.
+    - **Pydantic Overrides:** Allows for custom Pydantic field overrides, such as changing field types or setting aliases, while validating against the table's schema.
+
+    ### How to use it:
+
+    1. **Subclassing:** Create a subclass of `BaseTable` for each table in your project.
+    2. **Defining Columns:** Define your columns as you normally would in a Piccolo table.
+    3. **Pydantic Overrides:** If needed, override the `pydantic_overrides` method to customize the Pydantic model generated for your table.
+    4. **Accessing the Pydantic Model:** Use the `pydantic_model` class attribute to access the generated Pydantic model.
+
+    ### Examples:
+
+    #### Basic Table Definition
+    ```python
+    class MyTable(BaseTable):
+        name = Varchar()
+        age = Integer()
+    ```
+
+    #### Using Pydantic Overrides
+    ```python
+    class MyTable(BaseTable):
+        name = Varchar()
+        age = Integer()
+
+        @classmethod
+        def pydantic_overrides(cls):
+            return [
+                (cls.name, "full_name", str),
+                (cls.age, "years", float),
+            ]
+
+    # Accessing the Pydantic model
+    MyTable.pydantic_model
+    ```
+
+    In this example, the `MyTable` class is a Piccolo table with a Pydantic model
+    that uses `full_name` as an alias for `name` and treats `age` as a float,
+    accessible through the alias `years`.
     """
 
     # This is for type hinting. The actual model is created in the __init_subclass__ method.
@@ -194,7 +243,70 @@ T = TypeVar("T", bound=BaseModel)
 
 class PnwBaseTable(Generic[T], BaseTable):
     """
-    A base class for all tables in the Politics and War database.
+    A base class for all tables in the Politics and War (P&W) database.
+
+    This class extends `BaseTable` to include functionality specific to
+    the Politics and War API v3, allowing for easy conversion between
+    API v3 models and Piccolo table instances.
+
+    ## Usage
+
+    ### What this class can do:
+    - **API v3 Model Integration:** Automatically sets the `api_v3_model` class attribute based on the provided generic type parameter.
+    - **Data Conversion:** Provides methods for converting between API v3 models and corresponding table instances.
+    - **Inheritance from BaseTable:** Inherits all features of `BaseTable`, including Pydantic model creation, abstract method enforcement, and customizable Pydantic field overrides.
+
+    ### How to use it:
+
+    1. **Subclassing:** Create a subclass of `PnwBaseTable` for each table in the Politics and War database.
+    2. **Specifying API v3 Model:** Use the generic type parameter to specify the API v3 model that corresponds to the table.
+    3. **Converting Data:** Use the `from_api_v3` class method to convert API v3 models or sequences of models into table instances.
+    4. **Handling Field Name Differences:** Use `pydantic_overrides` to map API field names to different table field names.
+
+    ### Examples:
+
+    #### Basic Table Definition with API v3 Integration
+    ```python
+    class NationTable(PnwBaseTable[NationModel]):
+        name = Varchar()
+        population = Integer()
+
+    # Convert an API v3 model instance to a table instance
+    api_v3_nation = NationModel(name="Testland", population=1000000)
+    nation_table_instance = NationTable.from_api_v3(api_v3_nation)
+    ```
+
+    #### Converting Multiple Models
+    ```python
+    api_v3_nations = [
+        NationModel(name="Testland", population=1000000),
+        NationModel(name="Examplestan", population=500000),
+    ]
+    nation_table_instances = NationTable.from_api_v3(api_v3_nations)
+    ```
+
+    #### Handling Field Name Differences
+    Suppose the API uses the field name `nation_name` instead of `name`, and you want to use `name` as the field name in your table. You can use `pydantic_overrides` to create an alias.
+
+    ```python
+    class NationTable(PnwBaseTable[NationModel]):
+        name = Varchar()
+        population = Integer()
+
+        @classmethod
+        def pydantic_overrides(cls):
+            return [
+                (cls.name, "nation_name", str),  # Maps the API field `nation_name` to `name`
+            ]
+
+    # Convert an API v3 model instance to a table instance
+    api_v3_nation = NationModel(nation_name="Testland", population=1000000)
+    nation_table_instance = NationTable.from_api_v3(api_v3_nation)
+
+    # The table instance will have `name="Testland"` even though the API field was `nation_name`.
+    ```
+
+    In this example, the `NationTable` maps the API field `nation_name` to the table field `name` using the `pydantic_overrides` method. This allows the conversion to work seamlessly, even when the field names differ between the API and your table.
     """
 
     api_v3_model: type[BaseModel]
