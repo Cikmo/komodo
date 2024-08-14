@@ -227,12 +227,16 @@ class Chatbot(commands.Cog):
                 assistant_id=assistant.id,
             )
 
+            did_run_tools: bool = False
+
             if run.status == "completed":
                 thread_messages = await self.ai_client.beta.threads.messages.list(
                     thread_id=thread.id
                 )
             else:
                 logger.warning("run status: %s", run.status)
+                self.busy_channels.remove(message.channel.id)
+                return
 
             # Define the list to store tool outputs
             tool_outputs: list[Any] = []
@@ -266,6 +270,7 @@ class Chatbot(commands.Cog):
 
             # Submit all tool outputs at once after collecting them in a list
             if tool_outputs:
+                did_run_tools = True
                 try:
                     run = await self.ai_client.beta.threads.runs.submit_tool_outputs_and_poll(
                         thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs
@@ -277,11 +282,14 @@ class Chatbot(commands.Cog):
                     print("No tool outputs to submit.")
 
         if run.status == "completed":
-            thread_messages = (
-                await self.ai_client.beta.threads.messages.list(
-                    thread_id=thread.id, limit=1
-                )
-            ).data[0]
+            if not did_run_tools:
+                thread_messages = thread_messages.data[0]
+            else:
+                thread_messages = (
+                    await self.ai_client.beta.threads.messages.list(
+                        thread_id=thread.id, limit=1
+                    )
+                ).data[0]
 
             for content in thread_messages.content:
                 if not content.type == "text":
