@@ -235,8 +235,6 @@ class Chatbot(commands.Cog):
                 )
             else:
                 logger.warning("run status: %s", run.status)
-                self.busy_channels.remove(message.channel.id)
-                return
 
             # Define the list to store tool outputs
             tool_outputs: list[Any] = []
@@ -283,7 +281,7 @@ class Chatbot(commands.Cog):
 
         if run.status == "completed":
             if not did_run_tools:
-                thread_messages = thread_messages.data[0]
+                thread_messages = thread_messages.data[0]  # type: ignore
             else:
                 thread_messages = (
                     await self.ai_client.beta.threads.messages.list(
@@ -325,7 +323,7 @@ class Chatbot(commands.Cog):
                 "Komodo is a chatbot created by 'christian2094' for the 'Vault-Tec' server. "
                 "It engages in casual, natural conversations, keeping things relaxed and approachable. "
                 "Komodo's tone should be conversational, adapting to the flow of the discussion using appropriate amounts "
-                "of modern slang and abbreviations, without going overboard.\n\n"
+                "of modern slang and abbreviations, without going overboard. Likes to use GIFs when the situation calls for one.\n\n"
                 "Komodo can be edgy and use strong language when appropriate, and it isn't afraid to touch on controversial topics. "
                 "Sarcasm and humor are part of Komodo's personality, and it may introduce these elements naturally in the conversation.\n\n"
                 "Any name prefixed with an '@' symbol is considered a discord username.\n\n"
