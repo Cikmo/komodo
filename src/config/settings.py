@@ -105,6 +105,12 @@ class DatabaseSettings(BaseModel):
     password: str = ""
 
 
+class TenorSettings(BaseModel):
+    """Tenor settings."""
+
+    api_key: str = ""
+
+
 class Settings(BaseSettings):
     """Application settings."""
 
@@ -117,6 +123,8 @@ class Settings(BaseSettings):
     ai: AISettings = AISettings()
 
     database: DatabaseSettings = DatabaseSettings()
+
+    tenor: TenorSettings = TenorSettings()
 
     logging: LoggingSettings = LoggingSettings()
 
