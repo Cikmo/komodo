@@ -50,6 +50,7 @@ class AISettings(BaseModel):
     """AI settings."""
 
     openai_key: str = ""
+    chatbot_channel_id: int = 0
 
 
 class LoggingStreamSettings(BaseModel):

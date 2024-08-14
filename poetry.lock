@@ -226,6 +226,17 @@ astroid = ["astroid (>=1,<2)", "astroid (>=2,<4)"]
 test = ["astroid (>=1,<2)", "astroid (>=2,<4)", "pytest"]
 
 [[package]]
+name = "async-lru"
+version = "2.0.4"
+description = "Simple LRU cache for asyncio"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "async-lru-2.0.4.tar.gz", hash = "sha256:b8a59a5df60805ff63220b2a0c5b5393da5521b113cd5465a44eb037d81a5627"},
+    {file = "async_lru-2.0.4-py3-none-any.whl", hash = "sha256:ff02944ce3c288c5be660c42dbcca0742b32c3b279d6dceda655190240b99224"},
+]
+
+[[package]]
 name = "asyncpg"
 version = "0.29.0"
 description = "An asyncio PostgreSQL driver"
@@ -1773,4 +1784,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.12,<3.13"
-content-hash = "0425053492b92dee57ee3b161efca7429fe5a000b3a71d754209dd9a6faeba46"
+content-hash = "b761344fb74cf1dcb42b811e128630c5daf09b4b5465f425bda04a1e7834a71d"
