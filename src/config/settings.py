@@ -9,6 +9,7 @@ import os
 import sys
 import tomllib
 from functools import lru_cache
+from typing import NoReturn
 
 import tomli_w
 from pydantic import BaseModel
@@ -46,11 +47,18 @@ class PnWSettings(BaseModel):
     password: str = ""
 
 
+class AITenorSettings(BaseModel):
+    """Tenor settings."""
+
+    api_key: str = ""
+
+
 class AISettings(BaseModel):
     """AI settings."""
 
     openai_key: str = ""
     chatbot_channel_id: int = 0
+    tenor: AITenorSettings = AITenorSettings()
 
 
 class LoggingStreamSettings(BaseModel):
@@ -105,12 +113,6 @@ class DatabaseSettings(BaseModel):
     password: str = ""
 
 
-class TenorSettings(BaseModel):
-    """Tenor settings."""
-
-    api_key: str = ""
-
-
 class Settings(BaseSettings):
     """Application settings."""
 
@@ -123,8 +125,6 @@ class Settings(BaseSettings):
     ai: AISettings = AISettings()
 
     database: DatabaseSettings = DatabaseSettings()
-
-    tenor: TenorSettings = TenorSettings()
 
     logging: LoggingSettings = LoggingSettings()
 
@@ -177,50 +177,49 @@ class Settings(BaseSettings):
     @classmethod
     def load_or_initialize_settings(cls) -> Settings:
         """Load or initialize settings.
-        Args:
-            use_file: A flag indicating whether to load settings from a file or use environment variables.
 
         Returns:
             Settings: The loaded or initialized settings.
         """
-
-        if USE_FILE:
-            settings_file_created = False
-
-            if os.path.exists(path=SETTINGS_FILE_PATH):
-                # Load settings from the settings file.
-
-                settings = cls()
-
-                logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
-            else:
-                # Create a new settings model, ignoring any environment variables and using the default values.
-                settings = cls.model_construct()
-                logger.debug("Initializing settings with default values")
-
-                settings_file_created = True
-
-            settings.save_to_file(SETTINGS_FILE_PATH)
-            logger.info("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
-
-            if settings_file_created:
-                cls.exit_due_to_new_file_created()
-
-        else:
-            # Create a new settings model, using environment variables if provided.
-            settings = cls()
-            logger.debug(
-                "Initializing settings using environment variables if provided"
-            )
+        settings = (
+            cls.load_or_initialize_settings_from_file()
+            if USE_FILE
+            else cls.load_or_initialize_settings_from_env()
+        )
 
         logger.info(
             "Using settings from %s",
-            "environment variables" if not USE_FILE else f"{SETTINGS_FILE_PATH}",
+            SETTINGS_FILE_PATH if USE_FILE else "environment variables",
         )
 
         settings.validate_essential_settings()
 
         return settings
+
+    @classmethod
+    def load_or_initialize_settings_from_file(cls) -> Settings | NoReturn:
+        """Load settings from file or initialize with defaults if the file does not exist.
+        Exits the application if the file does not exist, to allow the user to update the settings.
+        """
+        if os.path.exists(SETTINGS_FILE_PATH):
+            logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
+            settings = cls()
+
+            # We save the settings to the file to ensure that any new fields are added
+            settings.save_to_file(SETTINGS_FILE_PATH)
+            return settings
+        else:
+            logger.debug("Initializing settings with default values")
+            settings = cls.model_construct()
+            settings.save_to_file(SETTINGS_FILE_PATH)
+            logger.debug("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
+            return cls.exit_due_to_new_file_created()
+
+    @classmethod
+    def load_or_initialize_settings_from_env(cls) -> Settings:
+        """Initialize settings using environment variables if provided."""
+        logger.debug("Initializing settings using environment variables if provided")
+        return cls()
 
     @staticmethod
     def exit_due_to_new_file_created():
