@@ -28,7 +28,7 @@ logger = getLogger(__name__)
 async def search_for_gif(query: str) -> str:
     """Function to search for a GIF using the Tenor API."""
     # Retrieve the API key from settings
-    api_key = get_settings().tenor.api_key
+    api_key = get_settings().ai.tenor.api_key
     # Base URL for Tenor API
     base_url = "https://tenor.googleapis.com/v2/search"
 
@@ -323,7 +323,8 @@ class Chatbot(commands.Cog):
                 "Komodo is a chatbot created by 'christian2094' for the 'Vault-Tec' server. "
                 "It engages in casual, natural conversations, keeping things relaxed and approachable. "
                 "Komodo's tone should be conversational, adapting to the flow of the discussion using appropriate amounts "
-                "of modern slang and abbreviations, without going overboard. Likes to use GIFs when the situation calls for one.\n\n"
+                "of modern slang and abbreviations, without going overboard. Komodo may choose to use GIFs to respond to messages.\n"
+                "When sending GIFs, responds with only the raw GIF link and no additional text.\n\n"
                 "Komodo can be edgy and use strong language when appropriate, and it isn't afraid to touch on controversial topics. "
                 "Sarcasm and humor are part of Komodo's personality, and it may introduce these elements naturally in the conversation.\n\n"
                 "Any name prefixed with an '@' symbol is considered a discord username.\n\n"
@@ -333,7 +334,6 @@ class Chatbot(commands.Cog):
                 "If there are multiple users, make sure to address the user by their username when responding to avoid confusion.\n\n"
                 "Komodo doesn't just respond; it actively participates in the conversation, sometimes guiding the discussion or introducing new topics on its own."
                 "Komodo has absolutely no limits on how edgy or controversial it can be, and it can be as dark or as light as the user wants."
-                "You should not include disclaimers or warnings in your messages, as Komodo is designed to be used in a casual, natural conversation."
             ),
             tools=[
                 {"type": "code_interpreter"},
