@@ -52,7 +52,7 @@ class PnWSettings(BaseModel):
 
 
 class AITenorSettings(BaseModel):
-    """Tenor settings."""
+    """Tenor (gif API) settings."""
 
     api_key: str = ""
 
