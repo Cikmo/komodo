@@ -9,8 +9,8 @@ import os
 import sys
 import tomllib
 from functools import lru_cache
-from typing import NoReturn
 
+import semver
 import tomli_w
 from pydantic import BaseModel
 from pydantic_settings import (
@@ -22,6 +22,10 @@ from pydantic_settings import (
 )
 
 logger = logging.getLogger(__name__)
+
+# SETTINGS_VERSION will be updated whenever fields are added, changed, or removed.
+# This way we can handle migrations when loading settings from file.
+SETTINGS_VERSION = "0.1.0"
 
 USE_FILE = os.getenv("KOMODO_USE_FILE", "true").lower() in ("true", "1", "t")
 SETTINGS_FILE_PATH = "settings.dev.toml" if __debug__ else "settings.toml"
@@ -116,7 +120,7 @@ class DatabaseSettings(BaseModel):
 class Settings(BaseSettings):
     """Application settings."""
 
-    file_version: int = 1
+    version: str = SETTINGS_VERSION
 
     discord: DiscordSettings = DiscordSettings()
 
@@ -144,6 +148,88 @@ class Settings(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, EnvSettingsSource]:
         return (TomlConfigSettingsSource(settings_cls), EnvSettingsSource(settings_cls))
+
+    @classmethod
+    def load_or_initialize_settings(cls) -> Settings:
+        """Load or initialize settings.
+
+        Returns:
+            Settings: The loaded or initialized settings.
+        """
+        settings = (
+            cls.load_or_initialize_settings_from_file()
+            if USE_FILE
+            else cls.load_or_initialize_settings_from_env()
+        )
+
+        logger.info(
+            "Using settings from %s",
+            SETTINGS_FILE_PATH if USE_FILE else "environment variables",
+        )
+
+        settings.validate_essential_settings()
+
+        return settings
+
+    @classmethod
+    def load_or_initialize_settings_from_file(cls) -> "Settings":
+        """Load settings from file or initialize with defaults if the file does not exist.
+        Creates the settings file if it doesn't exist and exits the application,
+        prompting the user to update the settings.
+        """
+        if os.path.exists(SETTINGS_FILE_PATH):
+            logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
+            settings = (
+                cls()
+            )  # This will load settings from file due to the cls() behavior
+
+            cls._validate_settings_version(settings)
+            return settings
+
+        else:
+            logger.warning(
+                "Settings file does not exist. Creating a new one with default settings."
+            )
+            settings = cls()
+            settings.save_to_file(SETTINGS_FILE_PATH)
+            logger.info(
+                "Default settings saved to %s. Please update the settings file as needed and restart the application.",
+                SETTINGS_FILE_PATH,
+            )
+            sys.exit(0)
+
+    @classmethod
+    def _validate_settings_version(cls, settings: "Settings") -> None:
+        """Validates and handles the version of the settings file."""
+        try:
+            comparison = semver.compare(settings.version, SETTINGS_VERSION)
+        except ValueError as e:
+            logger.error(
+                "Invalid version format in settings: %s. Exiting application.", e
+            )
+            sys.exit(1)
+
+        if comparison < 0:
+            logger.warning(
+                "Settings file version is outdated. Automatically updating the settings file. "
+                "You may need to update the settings manually."
+            )
+            settings.version = SETTINGS_VERSION
+            settings.save_to_file(SETTINGS_FILE_PATH)
+        elif comparison > 0:
+            logger.error(
+                "Settings file version (%s) is newer than the application version (%s). "
+                "Please update the application or downgrade the settings file.",
+                settings.version,
+                SETTINGS_VERSION,
+            )
+            sys.exit(1)
+
+    @classmethod
+    def load_or_initialize_settings_from_env(cls) -> Settings:
+        """Initialize settings using environment variables if provided."""
+        logger.debug("Initializing settings using environment variables if provided")
+        return cls()
 
     def save_to_file(self, file_path: str | None = None):
         """Save settings to a file.
@@ -173,63 +259,6 @@ class Settings(BaseSettings):
         except IOError as e:
             logger.error("Failed to save settings to %s", file_path)
             raise e
-
-    @classmethod
-    def load_or_initialize_settings(cls) -> Settings:
-        """Load or initialize settings.
-
-        Returns:
-            Settings: The loaded or initialized settings.
-        """
-        settings = (
-            cls.load_or_initialize_settings_from_file()
-            if USE_FILE
-            else cls.load_or_initialize_settings_from_env()
-        )
-
-        logger.info(
-            "Using settings from %s",
-            SETTINGS_FILE_PATH if USE_FILE else "environment variables",
-        )
-
-        settings.validate_essential_settings()
-
-        return settings
-
-    @classmethod
-    def load_or_initialize_settings_from_file(cls) -> Settings | NoReturn:
-        """Load settings from file or initialize with defaults if the file does not exist.
-        Exits the application if the file does not exist, to allow the user to update the settings.
-        """
-        if os.path.exists(SETTINGS_FILE_PATH):
-            logger.debug("Loading settings from %s", SETTINGS_FILE_PATH)
-            settings = cls()
-
-            # We save the settings to the file to ensure that any new fields are added
-            settings.save_to_file(SETTINGS_FILE_PATH)
-            return settings
-        else:
-            logger.debug("Initializing settings with default values")
-            settings = cls.model_construct()
-            settings.save_to_file(SETTINGS_FILE_PATH)
-            logger.debug("Settings initialized and saved to %s", SETTINGS_FILE_PATH)
-            return cls.exit_due_to_new_file_created()
-
-    @classmethod
-    def load_or_initialize_settings_from_env(cls) -> Settings:
-        """Initialize settings using environment variables if provided."""
-        logger.debug("Initializing settings using environment variables if provided")
-        return cls()
-
-    @staticmethod
-    def exit_due_to_new_file_created():
-        """Handle missing settings by informing the user and exiting."""
-        logger.error(
-            "Settings file not found.\n"
-            "A new settings file has been created with default values. Please update it with the "
-            "correct values before restarting the application."
-        )
-        sys.exit(1)
 
     def validate_essential_settings(self) -> None:
         """Validate the settings. If any essential settings are missing,
