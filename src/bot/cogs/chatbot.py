@@ -274,7 +274,7 @@ class Chatbot(commands.Cog):
                         thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs
                     )
                     print("Tool outputs submitted successfully.")
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     print("Failed to submit tool outputs:", e)
                 else:
                     print("No tool outputs to submit.")
@@ -343,7 +343,8 @@ class Chatbot(commands.Cog):
                             "properties": {
                                 "nation_name": {
                                     "type": "string",
-                                    "description": "The name of the nation. Case insensitive. Mutually exclusive with 'discord_id'.",
+                                    "description": "The name of the nation. Case insensitive."
+                                    " Mutually exclusive with 'discord_id'.",
                                 },
                                 "discord_name": {
                                     "type": "string",
@@ -358,7 +359,7 @@ class Chatbot(commands.Cog):
                     "type": "function",
                     "function": {
                         "name": "search_for_gif",
-                        "description": "Search for a GIF. Useful for when you want to add some visual flair to the conversation.",
+                        "description": "Search for a GIF and get a URL to the first result.",
                         "parameters": {
                             "type": "object",
                             "properties": {
