@@ -2,17 +2,21 @@
 
 from functools import wraps
 from logging import getLogger
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from async_lru import alru_cache
 from openai import AsyncOpenAI
 from openai.types import ChatModel
 from openai.types.beta.assistant import Assistant
+from openai.types.beta.thread import Thread
 
 import discord
 from discord.ext import commands
 from src.bot import Bot
 from src.config.settings import get_settings
+
+if TYPE_CHECKING:
+    from openai.types.beta import Thread
 
 logger = getLogger(__name__)
 
@@ -46,6 +50,8 @@ class Chatbot(commands.Cog):
         self.bot = bot
         self.openai = AsyncOpenAI(api_key=get_settings().ai.openai_key)
 
+        self.threads: dict[int, Thread] = {}
+
     @commands.Cog.listener()
     @should_process_message
     async def on_message(self, message: discord.Message):
@@ -78,7 +84,8 @@ class Chatbot(commands.Cog):
         async for assistant in assistants:
             if assistant.name == ASSISTANT_NAME:
                 # Check if the version matches
-                assert isinstance(assistant.metadata, dict)
+                if not isinstance(assistant.metadata, dict):
+                    continue
                 if assistant.metadata.get("version") == ASSISTANT_VERSION:
                     return assistant
 
@@ -109,6 +116,18 @@ class Chatbot(commands.Cog):
         )
 
         return new_assistant
+
+    async def get_thread(self, message: discord.Message) -> Thread:
+        """
+        Get an OpenAI thread object. If a thread already exists for the channel, return it.
+        Otherwise, create a new thread.
+        """
+        if message.channel.id in self.threads:
+            thread = self.threads[message.channel.id]
+        else:
+            thread = await self.openai.beta.threads.create()
+            self.threads[message.channel.id] = thread
+        return thread
 
 
 class ChatbotFunctions:
