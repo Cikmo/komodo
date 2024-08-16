@@ -145,28 +145,11 @@ class UserMessage(BaseModel):
     content: str
 
 
-class Remember(BaseModel):
-    """Remember object to be sent to the AI chatbot."""
-
-    model_config = {"json_schema_extra": {"additionalProperties": False}}
-
-    should_remember: bool = Field(
-        description="What the AI should remember about the user."
-    )
-    username: str = Field(
-        description="The username of the user. Empty string if should_remember is False."
-    )
-    content: str = Field(
-        description="The content to remember. Empty string if should_remember is False."
-    )
-
-
 class BotMessage(BaseModel):
     """Format that will be returned by the AI chatbot."""
 
     model_config = {"json_schema_extra": {"additionalProperties": False}}
 
-    remember: Remember
     internal_thoughts: str = Field(description="Internal thoughts of the AI.")
     content: str = Field(description="The content of the message sent to the user.")
 
@@ -235,6 +218,8 @@ class Chatbot(commands.Cog):
         if not bot_message:
             return
 
+        logger.info("Internal thoughts: %s", bot_message.internal_thoughts)
+
         await message.channel.send(
             bot_message.content, allowed_mentions=discord.AllowedMentions.none()
         )
@@ -258,7 +243,6 @@ class Chatbot(commands.Cog):
         required_action = run.required_action
 
         while required_action:
-            print("required_action:", required_action)
             tool_outputs: list[Any] = []
 
             for tool in required_action.submit_tool_outputs.tool_calls:
@@ -302,6 +286,8 @@ class Chatbot(commands.Cog):
         for content in thread_message.content:
             assert content.type == "text"
 
+            bot_message = BotMessage.model_validate_json(content.text.value)
+
             for match in re.finditer(r"@([\w.]+)", content.text.value):
                 # get the username from the match
                 username = match.group(1)
@@ -311,10 +297,10 @@ class Chatbot(commands.Cog):
 
                 # replace the raw string "@username" with "<@discord_id>"
                 if discord_id:
-                    content.text.value = content.text.value.replace(
+                    bot_message.content = bot_message.content.replace(
                         f"@{username}", f"<@{discord_id}>"
                     )
-            return BotMessage.model_validate_json(content.text.value)
+            return bot_message
 
     def process_user_message(
         self, message: discord.Message
@@ -425,7 +411,6 @@ class Chatbot(commands.Cog):
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
             tools=[
-                {"type": "code_interpreter"},
                 {
                     "type": "function",
                     "function": {
@@ -446,6 +431,7 @@ class Chatbot(commands.Cog):
                                 },
                             },
                             "additionalProperties": False,
+                            "strict": True,
                         },
                     },
                 },
@@ -464,6 +450,7 @@ class Chatbot(commands.Cog):
                             },
                             "required": ["query"],
                             "additionalProperties": False,
+                            "strict": True,
                         },
                     },
                 },
