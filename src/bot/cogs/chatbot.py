@@ -297,7 +297,7 @@ class Chatbot(commands.Cog):
 
                 # replace all raw string "@username" with "<@discord_id>"
                 # use regex to find all occurrences of "@username" in the string
-                for match in re.finditer(r"@(\w+)", value):
+                for match in re.finditer(r"@([\w.]+)", value):
                     # get the username from the match
                     username = match.group(1)
 
