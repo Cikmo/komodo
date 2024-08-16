@@ -16,6 +16,7 @@ from src.config.settings import get_settings
 logger = getLogger(__name__)
 
 
+ASSISTANT_MODEL = "gpt-4o-mini"
 ASSISTANT_NAME = "Komodo"
 ASSISTANT_VERSION = "0.1.0"
 ASSISTANT_INSTRUCTIONS_FILE_PATH = "resources/chatbot/ai_instructions.txt"
@@ -58,38 +59,37 @@ class Chatbot(commands.Cog):
 
     @alru_cache(maxsize=1)
     async def get_assistant(self) -> Assistant:
-        """Get the assistant object."""
+        """
+        Get or create an OpenAI Assistant object. The function checks if a valid assistant
+        with the correct version exists. If not, it creates a new assistant with the given
+        instructions.
+
+        Returns:
+            Assistant: The assistant object with the correct version.
+        Raises:
+            FileNotFoundError: If the instructions file is not found.
+        """
 
         # IMPORTANT: Remember to bump the version number if the assistant is changed in any way.
 
         # Check if the assistant already exists
         assistants = self.openai.beta.assistants.list()
-
-        valid_assistant = None
-
         async for assistant in assistants:
             if assistant.name == ASSISTANT_NAME:
                 # Check if the version matches
                 assert isinstance(assistant.metadata, dict)
-
                 if assistant.metadata.get("version") == ASSISTANT_VERSION:
-                    valid_assistant = assistant
-                else:
-                    # Delete any outdated assistants
-                    await self.openai.beta.assistants.delete(assistant.id)
-                    logger.info("Deleted outdated assistant %s", assistant.id)
-
-        # If a valid assistant is found, return it
-        if valid_assistant:
-            logger.info("Found valid assistant %s", valid_assistant.id)
-            return valid_assistant
+                    return assistant
 
         # If no assistant is found or version has changed, create a new one
         try:
             with open(ASSISTANT_INSTRUCTIONS_FILE_PATH, "r", encoding="utf-8") as file:
                 instructions = file.read()
         except FileNotFoundError as e:
-            logger.error("%s not found.", ASSISTANT_INSTRUCTIONS_FILE_PATH)
+            logger.error(
+                "Assistant instructions file %s not found.",
+                ASSISTANT_INSTRUCTIONS_FILE_PATH,
+            )
             raise e
 
         new_assistant = await self.openai.beta.assistants.create(
@@ -101,9 +101,20 @@ class Chatbot(commands.Cog):
             },  # Store the version in the assistant's metadata
         )
 
-        logger.info("Created new assistant %s", new_assistant.id)
+        logger.info(
+            "Created new assistant %s with version %s",
+            new_assistant.id,
+            ASSISTANT_VERSION,
+        )
 
         return new_assistant
+
+
+class ChatbotFunctions:
+    """Functions that the AI chatbot can run."""
+
+    def __init__(self, bot: Bot):
+        self.bot = bot
 
 
 async def setup(bot: Bot):
