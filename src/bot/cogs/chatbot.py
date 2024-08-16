@@ -80,6 +80,8 @@ async def get_nation_data(
 
     discord_id: str | None = None
     if discord_name:
+        if discord_name.startswith("@"):
+            discord_name = discord_name[1:]
         discord_id = await get_discord_id(bot, discord_name)
 
     url = "https://api.politicsandwar.com/graphql?api_key=" + get_settings().pnw.api_key
@@ -228,52 +230,14 @@ class Chatbot(commands.Cog):
             assistant = await self.get_assistant()
             thread = await self.get_thread(message)
 
-            await self.openai.beta.threads.messages.create(
-                thread_id=thread.id,
-                role="user",
-                content=self.process_user_message(message),
-            )
+            bot_message = await self.generate_response(message, assistant, thread)
 
-            run = await self.openai.beta.threads.runs.create_and_poll(
-                thread_id=thread.id,
-                assistant_id=assistant.id,
-            )
+        if not bot_message:
+            return
 
-        if run.status == "completed":
-            thread_messages = (
-                await self.openai.beta.threads.messages.list(
-                    thread_id=thread.id, limit=1
-                )
-            ).data[0]
-
-            for content in thread_messages.content:
-                if not content.type == "text":
-                    return
-
-                bot_message = BotMessage.model_validate_json(content.text.value)
-
-                # replace all raw string "@username" with "<@discord_id>"
-                # use regex to find all occurrences of "@username" in the string
-                for match in re.finditer(r"@([\w.]+)", bot_message.content):
-                    # get the username from the match
-                    username = match.group(1)
-
-                    # get the discord ID of the user
-                    discord_id = await get_discord_id(self.bot, username)
-
-                    # replace the raw string "@username" with "<@discord_id>"
-                    if discord_id:
-                        bot_message.content = bot_message.content.replace(
-                            f"@{username}", f"<@{discord_id}>"
-                        )
-
-                print("remember:", bot_message.remember)
-                print("")
-                print("internal_thoughts:", bot_message.internal_thoughts)
-
-                await message.channel.send(
-                    bot_message.content, allowed_mentions=discord.AllowedMentions.none()
-                )
+        await message.channel.send(
+            bot_message.content, allowed_mentions=discord.AllowedMentions.none()
+        )
 
     async def generate_response(
         self, message: discord.Message, assistant: Assistant, thread: Thread
@@ -286,23 +250,22 @@ class Chatbot(commands.Cog):
             content=self.process_user_message(message),
         )
 
+        print("uhhh")
+
         run = await self.openai.beta.threads.runs.create_and_poll(
             thread_id=thread.id,
             assistant_id=assistant.id,
         )
 
-        if not run.status == "completed":
-            logger.error("Run failed with status %s", run.status)
-            return
+        print(run.status)
 
-        thread_message = (
-            await self.openai.beta.threads.messages.list(thread_id=thread.id, limit=1)
-        ).data[0]
+        required_action = run.required_action
 
-        if run.required_action:
+        while required_action:
+            print("required_action:", required_action)
             tool_outputs: list[Any] = []
 
-            for tool in run.required_action.submit_tool_outputs.tool_calls:
+            for tool in required_action.submit_tool_outputs.tool_calls:
                 arguments: dict[str, Any] = orjson.loads(tool.function.arguments)
 
                 if tool.function.name == "get_nation_data":
@@ -325,9 +288,36 @@ class Chatbot(commands.Cog):
                         }
                     )
 
+            try:
+                run = await self.openai.beta.threads.runs.submit_tool_outputs_and_poll(
+                    thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs
+                )
+                logger.info("Submitted tool outputs")
+            except Exception as e:  # pylint: disable=broad-except
+                logger.error("Failed to submit tool outputs: %s", e)
+
+            required_action = run.required_action
+
+        thread_message = (
+            await self.openai.beta.threads.messages.list(thread_id=thread.id, limit=1)
+        ).data[0]
+
+        # Send final message
         for content in thread_message.content:
-            if not content.type == "text":
-                return
+            assert content.type == "text"
+
+            for match in re.finditer(r"@([\w.]+)", content.text.value):
+                # get the username from the match
+                username = match.group(1)
+
+                # get the discord ID of the user
+                discord_id = await get_discord_id(self.bot, username)
+
+                # replace the raw string "@username" with "<@discord_id>"
+                if discord_id:
+                    content.text.value = content.text.value.replace(
+                        f"@{username}", f"<@{discord_id}>"
+                    )
             return BotMessage.model_validate_json(content.text.value)
 
     def process_user_message(
@@ -438,6 +428,49 @@ class Chatbot(commands.Cog):
             metadata={
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_nation_data",
+                        "description": "Get data about a nation in Politics and War."
+                        " The nation can be found by name or Discord ID (if linked).",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "nation_name": {
+                                    "type": "string",
+                                    "description": "The name of the nation. Case insensitive."
+                                    " Mutually exclusive with 'discord_id'.",
+                                },
+                                "discord_name": {
+                                    "type": "string",
+                                    "description": "The Discord name of a user. Mutually exclusive with 'nation_name'.",
+                                },
+                            },
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "search_for_gif",
+                        "description": "Search for a GIF and get a URL to the first result.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "The search query for the GIF.",
+                                },
+                            },
+                            "required": ["query"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+            ],
         )
 
         logger.info(
