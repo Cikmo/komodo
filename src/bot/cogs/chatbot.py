@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from async_lru import alru_cache
 from openai import AsyncOpenAI
+from openai.types.beta.assistant import Assistant
 
 import discord
 from discord.ext import commands
@@ -51,14 +52,20 @@ class Chatbot(commands.Cog):
         if not message.author.id == 267814904226906115:
             return
 
-        await message.channel.send("reponse")
+        assistant = await self.get_assistant()
+
+        await message.channel.send(f"assistant: {assistant.id}")
 
     @alru_cache(maxsize=1)
-    async def get_assistant(self):
+    async def get_assistant(self) -> Assistant:
         """Get the assistant object."""
+
+        # IMPORTANT: Remember to bump the version number if the assistant is changed in any way.
 
         # Check if the assistant already exists
         assistants = self.openai.beta.assistants.list()
+
+        valid_assistant = None
 
         async for assistant in assistants:
             if assistant.name == ASSISTANT_NAME:
@@ -66,7 +73,16 @@ class Chatbot(commands.Cog):
                 assert isinstance(assistant.metadata, dict)
 
                 if assistant.metadata.get("version") == ASSISTANT_VERSION:
-                    return assistant
+                    valid_assistant = assistant
+                else:
+                    # Delete any outdated assistants
+                    await self.openai.beta.assistants.delete(assistant.id)
+                    logger.info("Deleted outdated assistant %s", assistant.id)
+
+        # If a valid assistant is found, return it
+        if valid_assistant:
+            logger.info("Found valid assistant %s", valid_assistant.id)
+            return valid_assistant
 
         # If no assistant is found or version has changed, create a new one
         try:
@@ -79,55 +95,13 @@ class Chatbot(commands.Cog):
         new_assistant = await self.openai.beta.assistants.create(
             name=ASSISTANT_NAME,
             instructions=instructions,
-            tools=[
-                {"type": "code_interpreter"},
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_nation_data",
-                        "description": "Get data about a nation in Politics and War."
-                        " The nation can be found by name or Discord ID (if linked).",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "nation_name": {
-                                    "type": "string",
-                                    "description": "The name of the nation. Case insensitive."
-                                    " Mutually exclusive with 'discord_id'.",
-                                },
-                                "discord_name": {
-                                    "type": "string",
-                                    "description": "The Discord name of a user. Mutually exclusive with 'nation_name'.",
-                                },
-                            },
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "search_for_gif",
-                        "description": "Search for a GIF and get a URL to the first result.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "The search query for the GIF.",
-                                },
-                            },
-                            "required": ["query"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-            ],
             model="gpt-4o-mini",
             metadata={
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
         )
+
+        logger.info("Created new assistant %s", new_assistant.id)
 
         return new_assistant
 
