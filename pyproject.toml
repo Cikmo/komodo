@@ -16,6 +16,7 @@ black = "^24.8.0"
 openai = "^1.40.3"
 async-lru = "^2.0.4"
 semver = "^3.0.2"
+orjson = "^3.10.7"
 
 
 [build-system]
@@ -31,6 +32,8 @@ typeCheckingMode = "strict"
 max-line-length = 120
 disable = ["W0107", "R0913", "C0414", "R0903", "C0105"]
 ignore-paths = ["./src/pnw/api_v3/.*"]
+extension-pkg-allow-list = ["orjson"]
+
 
 [tool.pytest]
 testpaths = "tests"
