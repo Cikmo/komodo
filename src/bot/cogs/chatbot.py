@@ -37,7 +37,7 @@ async def search_for_gif(query: str) -> str:
         "q": query,
         "key": api_key,
         "client_key": "komodo",
-        "limit": 3,  # Limiting to 1 to get the first result
+        "limit": 3,
     }
 
     async with aiohttp.ClientSession() as session:
