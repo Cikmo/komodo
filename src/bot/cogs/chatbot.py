@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from async_lru import alru_cache
 from openai import AsyncOpenAI
+from openai.types import ChatModel
 from openai.types.beta.assistant import Assistant
 
 import discord
@@ -15,11 +16,11 @@ from src.config.settings import get_settings
 
 logger = getLogger(__name__)
 
-
-ASSISTANT_MODEL = "gpt-4o-mini"
-ASSISTANT_NAME = "Komodo"
-ASSISTANT_VERSION = "0.1.0"
-ASSISTANT_INSTRUCTIONS_FILE_PATH = "resources/chatbot/ai_instructions.txt"
+# Constants
+ASSISTANT_NAME: str = "Komodo"
+ASSISTANT_VERSION: str = "0.1.0"
+ASSISTANT_MODEL: ChatModel = "gpt-4o-mini"
+ASSISTANT_INSTRUCTIONS_FILE_PATH: str = "resources/chatbot/ai_instructions.txt"
 
 
 def should_process_message(func: Callable[..., Any]) -> Callable[..., Any]:
