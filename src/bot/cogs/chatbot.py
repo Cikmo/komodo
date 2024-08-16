@@ -425,6 +425,7 @@ class Chatbot(commands.Cog):
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
             tools=[
+                {"type": "code_interpreter"},
                 {
                     "type": "function",
                     "function": {
