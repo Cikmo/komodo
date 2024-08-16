@@ -250,14 +250,10 @@ class Chatbot(commands.Cog):
             content=self.process_user_message(message),
         )
 
-        print("uhhh")
-
         run = await self.openai.beta.threads.runs.create_and_poll(
             thread_id=thread.id,
             assistant_id=assistant.id,
         )
-
-        print(run.status)
 
         required_action = run.required_action
 
