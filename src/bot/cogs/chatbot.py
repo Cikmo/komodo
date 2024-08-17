@@ -14,7 +14,7 @@ from async_lru import alru_cache
 from openai import AsyncOpenAI
 from openai.types import ChatModel
 from openai.types.beta.assistant import Assistant
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 import discord
 from discord.ext import commands
@@ -116,7 +116,14 @@ class Chatbot(commands.Cog):
             assistant = await self.get_assistant()
             thread = await self.get_thread(message)
 
-            bot_message = await self.generate_response(message, assistant, thread)
+            while True:
+                try:
+                    bot_message = await self.generate_response(
+                        message, assistant, thread
+                    )
+                except ValidationError:
+                    continue
+                break
 
         if not bot_message:
             return
@@ -190,7 +197,11 @@ class Chatbot(commands.Cog):
         for content in thread_message.content:
             assert content.type == "text"
 
-            bot_message = BotMessage.model_validate_json(content.text.value)
+            try:
+                bot_message = BotMessage.model_validate_json(content.text.value)
+            except ValidationError as e:
+                logger.error("Failed to validate bot message: %s", e)
+                raise e
 
             for match in re.finditer(r"@([\w.]+)", content.text.value):
                 # get the username from the match
@@ -305,14 +316,14 @@ class Chatbot(commands.Cog):
             name=ASSISTANT_NAME,
             instructions=instructions,
             response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "BotMessage",
-                    "strict": True,
-                    "schema": BotMessage.model_json_schema(),
-                },
+                "type": "json_object",
+                # "json_schema": {
+                #     "name": "BotMessage",
+                #     "strict": True,
+                #     "schema": BotMessage.model_json_schema(),
+                # },
             },
-            model="gpt-4o-mini",
+            model=ASSISTANT_MODEL,
             metadata={
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
