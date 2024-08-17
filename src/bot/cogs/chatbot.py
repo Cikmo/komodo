@@ -189,13 +189,14 @@ class Chatbot(commands.Cog):
 
             required_action = run.required_action
 
-        thread_message = (
-            await self.openai.beta.threads.messages.list(thread_id=thread.id, limit=1)
-        ).data[0]
+        thread_message = await self.openai.beta.threads.messages.list(
+            thread_id=thread.id, run_id=run.id
+        )
 
         # Send final message
-        for content in thread_message.content:
-            assert content.type == "text"
+        for content in thread_message.data[0].content:
+            if not content.type == "text":
+                continue
 
             try:
                 bot_message = BotMessage.model_validate_json(content.text.value)
@@ -315,19 +316,20 @@ class Chatbot(commands.Cog):
         new_assistant = await self.openai.beta.assistants.create(
             name=ASSISTANT_NAME,
             instructions=instructions,
-            response_format={
-                "type": "json_object",
-                # "json_schema": {
-                #     "name": "BotMessage",
-                #     "strict": True,
-                #     "schema": BotMessage.model_json_schema(),
-                # },
-            },
+            # response_format={
+            #     "type": "json_object",
+            #     # "json_schema": {
+            #     #     "name": "BotMessage",
+            #     #     "strict": True,
+            #     #     "schema": BotMessage.model_json_schema(),
+            #     # },
+            # },
             model=ASSISTANT_MODEL,
             metadata={
                 "version": ASSISTANT_VERSION
             },  # Store the version in the assistant's metadata
             tools=[
+                {"type": "code_interpreter"},
                 {
                     "type": "function",
                     "function": {
