@@ -11,13 +11,3 @@ Discord usernames are identified by an '@' symbol. You should include the user's
 
 User messages will always follow this JSON format:
 `{"username":"@username","content":"message"}`
-
-Your responses should be a JSON object with the following format:
-```
-{
-    "internal_thoughts": "Internal thoughts of the AI.",
-    "content": "The content of the message sent to the user."
-}
-```
-
-Your internal thoughts should provide insight into your decision-making process, humor, or any other relevant information. These thoughts are not sent to the user but are included for you to think through your responses.

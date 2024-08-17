@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import random
 import re
 from functools import wraps
@@ -12,9 +13,10 @@ import aiohttp
 import orjson
 from async_lru import alru_cache
 from openai import AsyncOpenAI
+from openai._legacy_response import HttpxBinaryResponseContent
 from openai.types import ChatModel
 from openai.types.beta.assistant import Assistant
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 import discord
 from discord.ext import commands
@@ -44,13 +46,13 @@ class UserMessage(BaseModel):
     content: str
 
 
-class BotMessage(BaseModel):
-    """Format that will be returned by the AI chatbot."""
+# class BotMessage(BaseModel):
+#     """Format that will be returned by the AI chatbot."""
 
-    internal_thoughts: str = Field(description="Internal thoughts of the AI.")
-    content: str = Field(description="The content of the message sent to the user.")
+#     internal_thoughts: str = Field(description="Internal thoughts of the AI.")
+#     content: str = Field(description="The content of the message sent to the user.")
 
-    model_config = {"json_schema_extra": {"additionalProperties": False}}
+#     model_config = {"json_schema_extra": {"additionalProperties": False}}
 
 
 # Decorators
@@ -116,22 +118,13 @@ class Chatbot(commands.Cog):
             assistant = await self.get_assistant()
             thread = await self.get_thread(message)
 
-            while True:
-                try:
-                    bot_message = await self.generate_response(
-                        message, assistant, thread
-                    )
-                except ValidationError:
-                    continue
-                break
+            bot_message = await self.generate_response(message, assistant, thread)
 
         if not bot_message:
             return
 
-        logger.info("Internal thoughts: %s", bot_message.internal_thoughts)
-
         await message.channel.send(
-            bot_message.content, allowed_mentions=discord.AllowedMentions.none()
+            bot_message, allowed_mentions=discord.AllowedMentions.none()
         )
 
     async def generate_response(
@@ -190,35 +183,49 @@ class Chatbot(commands.Cog):
             required_action = run.required_action
 
         thread_message = await self.openai.beta.threads.messages.list(
-            thread_id=thread.id, run_id=run.id
+            thread_id=thread.id, run_id=run.id, limit=1
         )
 
         # Send final message
-        for content in thread_message.data[0].content:
-            if not content.type == "text":
-                continue
+        for data in thread_message.data:
+            for content in data.content:
+                if content.type == "image_file":
 
-            try:
-                bot_message = BotMessage.model_validate_json(content.text.value)
-            except ValidationError as e:
-                logger.error("Failed to validate bot message: %s", e)
-                raise e
-
-            for match in re.finditer(r"@([\w.]+)", content.text.value):
-                # get the username from the match
-                username = match.group(1)
-
-                # get the discord ID of the user
-                member = await get_discord_member_from_name(
-                    cast(discord.Guild, message.guild), username
-                )
-
-                # replace the raw string "@username" with "<@discord_id>"
-                if member:
-                    bot_message.content = bot_message.content.replace(
-                        f"@{username}", f"<@{member.id}>"
+                    file: HttpxBinaryResponseContent = await self.openai.files.content(
+                        content.image_file.file_id
                     )
-            return bot_message
+                    image_bytes = io.BytesIO(file.content)
+                    image_bytes.seek(0)
+
+                    await message.channel.send(
+                        file=discord.File(image_bytes, filename="plot.png")
+                    )
+                    continue
+
+                if not content.type == "text":
+                    continue
+
+                try:
+                    bot_message = content.text.value
+                except ValidationError as e:
+                    logger.error("Failed to validate bot message: %s", e)
+                    raise e
+
+                for match in re.finditer(r"@([\w.]+)", content.text.value):
+                    # get the username from the match
+                    username = match.group(1)
+
+                    # get the discord ID of the user
+                    member = await get_discord_member_from_name(
+                        cast(discord.Guild, message.guild), username
+                    )
+
+                    # replace the raw string "@username" with "<@discord_id>"
+                    if member:
+                        bot_message = bot_message.replace(
+                            f"@{username}", f"<@{member.id}>"
+                        )
+                return bot_message
 
     def process_user_message(
         self, message: discord.Message
