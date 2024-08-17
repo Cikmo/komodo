@@ -2,12 +2,12 @@ import logging
 import re
 from datetime import datetime
 
-import discord
-from discord.ext import commands
 from pydantic import BaseModel
 
+import discord
+from discord.ext import commands
 from src.bot import Bot
-from src.utils import create_discord_timestamp
+from src.discord.utils import create_discord_timestamp
 
 logger = logging.getLogger(__name__)
 

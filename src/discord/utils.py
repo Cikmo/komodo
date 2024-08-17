@@ -3,6 +3,8 @@
 from datetime import datetime
 from enum import StrEnum
 
+import discord
+
 
 class TimestampType(StrEnum):
     """A class to represent the different formats of timestamps."""
@@ -29,3 +31,18 @@ def create_discord_timestamp(
         str: The Discord timestamp string.
     """
     return f"<t:{int(dt.timestamp())}:{timestamp_type.value}>"
+
+
+async def get_discord_member_from_name(
+    guild: discord.Guild, discord_name: str
+) -> discord.Member | None:
+    """Get a Discord member from a guild by their name.
+
+    Args:
+        guild: The guild to search in
+        discord_name: The name of the user to search for.
+
+    Returns:
+        The member if found, otherwise None.
+    """
+    return discord.utils.get(guild.members, name=discord_name.strip())

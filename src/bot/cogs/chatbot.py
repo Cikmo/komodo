@@ -6,7 +6,7 @@ import random
 import re
 from functools import wraps
 from logging import getLogger
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import aiohttp
 import orjson
@@ -20,6 +20,7 @@ import discord
 from discord.ext import commands
 from src.bot import Bot
 from src.config.settings import get_settings
+from src.discord.utils import get_discord_member_from_name
 
 if TYPE_CHECKING:
     from openai.types.beta import Thread
@@ -36,108 +37,6 @@ ASSISTANT_MODEL: ChatModel = "gpt-4o-mini"
 ASSISTANT_INSTRUCTIONS_FILE_PATH: str = "resources/chatbot/ai_instructions.txt"
 
 
-async def search_for_gif(query: str) -> str:
-    """Function to search for a GIF using the Tenor API."""
-    # Retrieve the API key from settings
-    api_key = get_settings().ai.tenor.api_key
-    # Base URL for Tenor API
-    base_url = "https://tenor.googleapis.com/v2/search"
-
-    # Parameters for the API request
-    params = {
-        "q": query,
-        "key": api_key,
-        "client_key": "komodo",
-        "limit": 3,
-    }
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=params) as response:
-            if response.status == 200:
-                data = await response.json()
-                # Return the URL of the first GIF
-                if data and "results" in data and data["results"]:
-                    # return random
-                    return random.choice(data["results"])["url"]
-                else:
-                    return "No GIF found for the query."
-            else:
-                return f"Request failed with status code {response.status}"
-
-
-async def get_nation_data(
-    *, bot: Bot, nation_name: str | None = None, discord_name: str | None = None
-) -> str:
-    """Function to get data about a nation."""
-
-    if not nation_name and not discord_name:
-        return (
-            "Error: at least one of 'nation_name' or 'discord_name' must be provided."
-        )
-
-    if nation_name and discord_name:
-        return "Error: only one of 'nation_name' or 'discord_name' can be provided."
-
-    discord_id: str | None = None
-    if discord_name:
-        if discord_name.startswith("@"):
-            discord_name = discord_name[1:]
-        discord_id = await get_discord_id(bot, discord_name)
-
-    url = "https://api.politicsandwar.com/graphql?api_key=" + get_settings().pnw.api_key
-
-    query = """
-        query($nation_name: [String!], $discord_id: [String!]) {
-            nations(nation_name: $nation_name, discord_id: $discord_id, first: 1) {
-                data {
-                    nation_name
-                    alliance {
-                        name
-                    }
-                    alliance_position
-                    leader_name
-                    war_policy
-                    domestic_policy
-                    color_trade_bloc: color
-                    num_cities
-                    score
-                    soldiers
-                    tanks
-                    aircraft
-                    ships
-                    missiles
-                    nukes
-                }
-            }
-        }
-    """
-
-    variables = {}
-    if nation_name:
-        variables["nation_name"] = nation_name
-    if discord_id:
-        variables["discord_id"] = str(discord_id)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, json={"query": query, "variables": variables}
-        ) as response:
-            if response.status != 200:
-                return f"Error: {response.status}"
-
-            data = await response.json()
-
-    if not data["data"]:
-        return "Nation not found."
-
-    nations = data["data"]["nations"]["data"]
-
-    if not nations:
-        return "Nation not found."
-
-    return str(nations[0])
-
-
 class UserMessage(BaseModel):
     """User message to be sent to the AI chatbot."""
 
@@ -148,10 +47,10 @@ class UserMessage(BaseModel):
 class BotMessage(BaseModel):
     """Format that will be returned by the AI chatbot."""
 
-    model_config = {"json_schema_extra": {"additionalProperties": False}}
-
     internal_thoughts: str = Field(description="Internal thoughts of the AI.")
     content: str = Field(description="The content of the message sent to the user.")
+
+    model_config = {"json_schema_extra": {"additionalProperties": False}}
 
 
 # Decorators
@@ -185,7 +84,10 @@ def ignore_if_busy(func: Callable[..., Any]) -> Callable[..., Any]:
 
         func_return = await func(self, message, *args, **kwargs)
 
-        self.busy_channels.remove(message.channel.id)
+        try:
+            self.busy_channels.remove(message.channel.id)
+        except ValueError:
+            pass
 
         return func_return
 
@@ -198,6 +100,7 @@ class Chatbot(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.openai = AsyncOpenAI(api_key=get_settings().ai.openai_key)
+        self.functions = ChatbotFunctions(bot)
 
         self.threads: dict[int, Thread] = {}
 
@@ -252,8 +155,7 @@ class Chatbot(commands.Cog):
                     tool_outputs.append(
                         {
                             "tool_call_id": tool.id,
-                            "output": await get_nation_data(
-                                bot=self.bot,
+                            "output": await self.functions.get_nation_data(
                                 nation_name=arguments.get("nation_name"),
                                 discord_name=arguments.get("discord_name"),
                             ),
@@ -264,7 +166,9 @@ class Chatbot(commands.Cog):
                     tool_outputs.append(
                         {
                             "tool_call_id": tool.id,
-                            "output": await search_for_gif(arguments.get("query", "")),
+                            "output": await self.functions.search_for_gif(
+                                arguments.get("query", "")
+                            ),
                         }
                     )
 
@@ -293,12 +197,14 @@ class Chatbot(commands.Cog):
                 username = match.group(1)
 
                 # get the discord ID of the user
-                discord_id = await get_discord_id(self.bot, username)
+                member = await get_discord_member_from_name(
+                    cast(discord.Guild, message.guild), username
+                )
 
                 # replace the raw string "@username" with "<@discord_id>"
-                if discord_id:
+                if member:
                     bot_message.content = bot_message.content.replace(
-                        f"@{username}", f"<@{discord_id}>"
+                        f"@{username}", f"<@{member.id}>"
                     )
             return bot_message
 
@@ -484,18 +390,114 @@ class ChatbotFunctions:
     def __init__(self, bot: Bot):
         self.bot = bot
 
+    async def search_for_gif(self, query: str) -> str:
+        """Function to search for a GIF using the Tenor API."""
+        # Retrieve the API key from settings
+        api_key = get_settings().ai.tenor.api_key
+        # Base URL for Tenor API
+        base_url = "https://tenor.googleapis.com/v2/search"
 
-async def get_discord_id(bot: Bot, discord_name: str) -> str | None:
-    """Function to get the Discord ID of a user."""
+        # Parameters for the API request
+        params = {
+            "q": query,
+            "key": api_key,
+            "client_key": "komodo",
+            "limit": 3,
+        }
 
-    discord_name = discord_name.strip()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(base_url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Return the URL of the first GIF
+                    if data and "results" in data and data["results"]:
+                        # return random
+                        return random.choice(data["results"])["url"]
+                    else:
+                        return "No GIF found for the query."
+                else:
+                    return f"Request failed with status code {response.status}"
 
-    for guild in bot.guilds:
-        member = discord.utils.get(guild.members, name=discord_name)
-        if member:
-            return str(member.id)
+    async def get_nation_data(
+        self, nation_name: str | None = None, discord_name: str | None = None
+    ) -> str:
+        """Function to get data about a nation."""
 
-    return None
+        if not nation_name and not discord_name:
+            return "Error: at least one of 'nation_name' or 'discord_name' must be provided."
+
+        if nation_name and discord_name:
+            return "Error: only one of 'nation_name' or 'discord_name' can be provided."
+
+        discord_id: str | None = None
+        if discord_name:
+            if discord_name.startswith("@"):
+                discord_name = discord_name[1:]
+
+            for guild in self.bot.guilds:
+                member = discord.utils.get(guild.members, name=discord_name)
+                if member:
+                    discord_id = str(member.id)
+                    break
+
+            if not discord_id:
+                return "User not found."
+
+        url = (
+            "https://api.politicsandwar.com/graphql?api_key="
+            + get_settings().pnw.api_key
+        )
+
+        query = """
+            query($nation_name: [String!], $discord_id: [String!]) {
+                nations(nation_name: $nation_name, discord_id: $discord_id, first: 1) {
+                    data {
+                        nation_name
+                        alliance {
+                            name
+                        }
+                        alliance_position
+                        leader_name
+                        war_policy
+                        domestic_policy
+                        color_trade_bloc: color
+                        num_cities
+                        score
+                        soldiers
+                        tanks
+                        aircraft
+                        ships
+                        missiles
+                        nukes
+                    }
+                }
+            }
+        """
+
+        variables = {}
+        if nation_name:
+            variables["nation_name"] = nation_name
+        if discord_id:
+            variables["discord_id"] = str(discord_id)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url, json={"query": query, "variables": variables}
+            ) as response:
+                if response.status != 200:
+                    return f"Error: {response.status}"
+
+                data = await response.json()
+
+        if not data["data"]:
+            return "Nation not found."
+
+        nations = data["data"]["nations"]["data"]
+
+        if not nations:
+            return "Nation not found."
+
+        return str(nations[0])
 
 
 async def setup(bot: Bot):
