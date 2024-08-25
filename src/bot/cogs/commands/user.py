@@ -9,9 +9,6 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 from src.bot.converters import NationAPIModelConverter
-
-# from src.tables.pnw import Nation
-# from src.tables.user_settings import UserSettings
 from src.database.tables.pnw import Nation
 from src.database.tables.registered_user import RegisteredUser
 
@@ -50,8 +47,6 @@ class User(commands.Cog):
                 "Nation not found. Make sure you have the correct nation name or ID."
             )
             return
-
-        print(nation.date)
 
         nation_db = await Nation.objects().where(Nation.id == int(nation.id)).first()
         if not nation_db:

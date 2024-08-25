@@ -158,7 +158,7 @@ type Query {
 
     # The offset from which items are returned.
     page: Int
-  ): CityPaginator
+  ): CityPaginator!
   bankrecs(
     id: [Int]
     min_id: Int
@@ -2549,7 +2549,7 @@ type City {
   # nukedate: Date @deprecated(reason: "Use nuke_date instead.")
 
   # Date the city was last nuked
-  nuke_date: Date!
+  nuke_date: String
 }
 
 # A date string with format `YYYY-MM-DD`, e.g. `2011-05-23`.

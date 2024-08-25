@@ -65,7 +65,13 @@ from .exceptions import (
     GraphQLClientHttpError,
     GraphQLClientInvalidResponseError,
 )
-from .fragments import NationFields, PaginatorFields
+from .fragments import CityFields, NationFields, PaginatorFields
+from .get_cities import (
+    GetCities,
+    GetCitiesCities,
+    GetCitiesCitiesData,
+    GetCitiesCitiesPaginatorInfo,
+)
 from .get_nations import (
     GetNations,
     GetNationsNations,
@@ -137,12 +143,17 @@ __all__ = [
     "BBTeamGamesOrderByOrderByClause",
     "BaseModel",
     "BountyType",
+    "CityFields",
     "Client",
     "Continents",
     "DefaultAlliancePosition",
     "DomesticPolicy",
     "EconomicPolicy",
     "EmbargoType",
+    "GetCities",
+    "GetCitiesCities",
+    "GetCitiesCitiesData",
+    "GetCitiesCitiesPaginatorInfo",
     "GetNations",
     "GetNationsNations",
     "GetNationsNationsData",

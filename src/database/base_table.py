@@ -10,6 +10,7 @@ import difflib
 import inspect
 
 # from abc import abstractmethod
+from types import UnionType
 from typing import (
     Any,
     Generic,
@@ -28,6 +29,8 @@ from piccolo.table import Table
 from piccolo.utils.pydantic import create_pydantic_model
 from pydantic import AliasChoices, BaseModel, Field, create_model
 from pydantic.fields import FieldInfo
+
+PydanticOverride = list[tuple[Column | None, str, type | UnionType]]
 
 
 class BaseTable(Table):
@@ -135,8 +138,6 @@ class BaseTable(Table):
                 )
             )
 
-        print(fields)
-
         cls.pydantic_model = create_model(
             f"{cls.__name__}Pydantic",
             __base__=create_pydantic_model(cls),
@@ -154,7 +155,7 @@ class BaseTable(Table):
         Retrieve the pydantic fields from the overrides.
         """
 
-        overrides: Sequence[tuple[Column, str, type]] = cls.pydantic_overrides()
+        overrides = cls.pydantic_overrides()
         overrides_dict: dict[str, tuple[type, FieldInfo]] = {}
 
         for override in overrides:
@@ -212,7 +213,7 @@ class BaseTable(Table):
     ### Methods that can be overridden by subclasses ###
 
     @classmethod
-    def pydantic_overrides(cls) -> Sequence[tuple[Column, str, type]]:
+    def pydantic_overrides(cls) -> PydanticOverride:
         """
         Override this method to provide custom pydantic overrides for the table.
         You can access the pydantic model from the class attribute `pydantic_model`.
@@ -340,6 +341,11 @@ class PnwBaseTable(Generic[T], BaseTable):
                 f"Class {cls.__name__} must have a generic type parameter to set the api_v3_model."
             )
 
+    @classmethod
+    def pre_conversion_transform(cls, model: T) -> T:
+        """Run any necessary transformations on the API v3 model before converting it to a table instance."""
+        return model
+
     @overload
     @classmethod
     def from_api_v3(cls, model: T) -> Self: ...
@@ -367,5 +373,7 @@ class PnwBaseTable(Generic[T], BaseTable):
         """
         Convert an API v3 model to a table instance.
         """
+        model = cls.pre_conversion_transform(model)
+
         converted_model = cls.pydantic_model.model_validate(model.model_dump())
         return cls(**converted_model.model_dump())

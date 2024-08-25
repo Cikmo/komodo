@@ -5,7 +5,12 @@ from typing import Any, Dict, List, Optional, Union
 
 from .async_base_client import AsyncBaseClient
 from .base_model import UNSET, UnsetType
+from .get_cities import GetCities
 from .get_nations import GetNations
+from .input_types import (
+    QueryCitiesOrderByOrderByClause,
+    QueryNationsOrderByOrderByClause,
+)
 from .mutation_bank_withdraw import MutationBankWithdraw
 
 
@@ -20,18 +25,22 @@ class Client(AsyncBaseClient):
         nation_name: Union[Optional[List[str]], UnsetType] = UNSET,
         discord_id: Union[Optional[List[str]], UnsetType] = UNSET,
         discord_name: Union[Optional[List[str]], UnsetType] = UNSET,
+        order_by: Union[
+            Optional[List[QueryNationsOrderByOrderByClause]], UnsetType
+        ] = UNSET,
         page_size: Union[Optional[int], UnsetType] = UNSET,
         page: Union[Optional[int], UnsetType] = UNSET,
         **kwargs: Any
     ) -> GetNations:
         query = gql(
             """
-            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $page_size: Int = 50, $page: Int) {
+            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $order_by: [QueryNationsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
               nations(
                 id: $nation_id
                 nation_name: $nation_name
                 discord_id: $discord_id
                 discord: $discord_name
+                orderBy: $order_by
                 first: $page_size
                 page: $page
               ) {
@@ -129,6 +138,7 @@ class Client(AsyncBaseClient):
             "nation_name": nation_name,
             "discord_id": discord_id,
             "discord_name": discord_name,
+            "order_by": order_by,
             "page_size": page_size,
             "page": page,
         }
@@ -137,6 +147,93 @@ class Client(AsyncBaseClient):
         )
         data = self.get_data(response)
         return GetNations.model_validate(data)
+
+    async def get_cities(
+        self,
+        city_id: Union[Optional[List[int]], UnsetType] = UNSET,
+        nation_id: Union[Optional[List[int]], UnsetType] = UNSET,
+        order_by: Union[
+            Optional[List[QueryCitiesOrderByOrderByClause]], UnsetType
+        ] = UNSET,
+        page_size: Union[Optional[int], UnsetType] = UNSET,
+        page: Union[Optional[int], UnsetType] = UNSET,
+        **kwargs: Any
+    ) -> GetCities:
+        query = gql(
+            """
+            query get_cities($city_id: [Int!], $nation_id: [Int!], $order_by: [QueryCitiesOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+              cities(
+                id: $city_id
+                nation_id: $nation_id
+                orderBy: $order_by
+                first: $page_size
+                page: $page
+              ) {
+                data {
+                  ...cityFields
+                }
+                paginatorInfo {
+                  ...paginatorFields
+                }
+              }
+            }
+
+            fragment cityFields on City {
+              id
+              nation_id
+              name
+              nuke_date
+              date
+              infrastructure
+              land
+              powered
+              oil_power
+              wind_power
+              coal_power
+              nuclear_power
+              coal_mine
+              oil_well
+              uranium_mine
+              barracks
+              farm
+              police_station
+              hospital
+              recycling_center
+              subway
+              supermarket
+              bank
+              shopping_mall
+              stadium
+              lead_mine
+              iron_mine
+              bauxite_mine
+              oil_refinery
+              aluminum_refinery
+              steel_mill
+              munitions_factory
+              factory
+              hangar
+              drydock
+            }
+
+            fragment paginatorFields on PaginatorInfo {
+              count
+              hasMorePages
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "city_id": city_id,
+            "nation_id": nation_id,
+            "order_by": order_by,
+            "page_size": page_size,
+            "page": page,
+        }
+        response = await self.execute(
+            query=query, operation_name="get_cities", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetCities.model_validate(data)
 
     async def mutation_bank_withdraw(
         self,

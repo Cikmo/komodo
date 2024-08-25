@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 import discord
 from discord.ext import commands
+from src.database.tables.pnw import City
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
 
@@ -105,6 +106,21 @@ class Developer(commands.Cog):
         embed = WhoEmbed(state=state)
 
         await ctx.reply(embed=embed, view=self.confirm_view)
+
+    @dev.command()
+    async def cities(self, ctx: commands.Context[Bot]):
+        """Get all cities from norlandia and add to database."""
+        cities_api = (await self.bot.api_v3.get_cities(nation_id=[239259])).cities.data
+
+        cities = City.from_api_v3(cities_api)
+
+        test = await City.insert(
+            *cities,
+        )
+
+        print(test)
+
+        await ctx.reply(f"Added {len(cities)} cities to the database.")
 
     # @dev.command()
     # async def create(self, ctx: commands.Context[Bot], nation_name: str):

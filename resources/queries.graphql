@@ -5,6 +5,7 @@ query get_nations(
   $nation_name: [String!]
   $discord_id: [String!]
   $discord_name: [String!]
+  $order_by: [QueryNationsOrderByOrderByClause!]
   $page_size: Int = 50
   $page: Int
 ) {
@@ -13,11 +14,35 @@ query get_nations(
     nation_name: $nation_name
     discord_id: $discord_id
     discord: $discord_name
+    orderBy: $order_by
     first: $page_size
     page: $page
   ) {
     data {
       ...nationFields
+    }
+    paginatorInfo {
+      ...paginatorFields
+    }
+  }
+}
+
+query get_cities(
+  $city_id: [Int!]
+  $nation_id: [Int!]
+  $order_by: [QueryCitiesOrderByOrderByClause!]
+  $page_size: Int = 50
+  $page: Int
+) {
+  cities(
+    id: $city_id
+    nation_id: $nation_id
+    orderBy: $order_by
+    first: $page_size
+    page: $page
+  ) {
+    data {
+      ...cityFields
     }
     paginatorInfo {
       ...paginatorFields
@@ -144,4 +169,42 @@ fragment nationFields on Nation {
   government_type
   credits_redeemed_this_month
   alliance_join_date
+}
+
+fragment cityFields on City {
+  id
+  nation_id
+  name
+  nuke_date
+  date
+  infrastructure
+  land
+  powered
+  oil_power
+  wind_power
+  coal_power
+  nuclear_power
+  coal_mine
+  oil_well
+  uranium_mine
+  barracks
+  farm
+  police_station
+  hospital
+  recycling_center
+  subway
+  supermarket
+  bank
+  shopping_mall
+  stadium
+  lead_mine
+  iron_mine
+  bauxite_mine
+  oil_refinery
+  aluminum_refinery
+  steel_mill
+  munitions_factory
+  factory
+  hangar
+  drydock
 }
