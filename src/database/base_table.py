@@ -342,7 +342,7 @@ class PnwBaseTable(Generic[T], BaseTable):
             )
 
     @classmethod
-    def pre_conversion_transform(cls, model: T) -> T:
+    def preprocess_api_v3_model(cls, model: T) -> T:
         """Run any necessary transformations on the API v3 model before converting it to a table instance."""
         return model
 
@@ -373,7 +373,7 @@ class PnwBaseTable(Generic[T], BaseTable):
         """
         Convert an API v3 model to a table instance.
         """
-        model = cls.pre_conversion_transform(model)
+        model = cls.preprocess_api_v3_model(model)
 
         converted_model = cls.pydantic_model.model_validate(model.model_dump())
         return cls(**converted_model.model_dump())

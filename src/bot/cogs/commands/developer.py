@@ -114,13 +114,11 @@ class Developer(commands.Cog):
 
         cities = City.from_api_v3(cities_api)
 
-        test = await City.insert(
+        inserted = await City.insert(
             *cities,
         )
 
-        print(test)
-
-        await ctx.reply(f"Added {len(cities)} cities to the database.")
+        await ctx.reply(f"Added {len(inserted)} cities to the database.")
 
     # @dev.command()
     # async def create(self, ctx: commands.Context[Bot], nation_name: str):

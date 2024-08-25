@@ -154,7 +154,7 @@ class City(PnwBaseTable[CityFields]):
     nation = ForeignKey(references=Nation, null=False, on_delete=OnDelete.cascade)
 
     @classmethod
-    def pre_conversion_transform(cls, model: CityFields) -> CityFields:
+    def preprocess_api_v3_model(cls, model: CityFields) -> CityFields:
         # For some reason the API returns a negative date if the city has never been nuked
         # to go around this we need to manually set it to None
         if model.nuke_date and model.nuke_date.startswith("-"):
