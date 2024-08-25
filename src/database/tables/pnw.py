@@ -14,6 +14,7 @@ from piccolo.columns import (
     Timestamptz,
     Varchar,
 )
+from pydantic import AwareDatetime
 
 from src.database.base_table import PnwBaseTable
 from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy
@@ -68,7 +69,7 @@ class Nation(PnwBaseTable[NationFields]):
             (cls.name, "nation_name", str),
             (cls.update_timezone, "update_tz", float),  # type: ignore
             (cls.flag_url, "flag", str),
-            (cls.date_created, "date", str),
+            (cls.date_created, "date", AwareDatetime),
             (cls.num_projects, "projects", int),
             (cls.offensive_war_count, "offensive_wars_count", int),
             (cls.defensive_war_count, "defensive_wars_count", int),

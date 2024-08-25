@@ -1,17 +1,35 @@
 from piccolo.apps.migrations.auto.migration_manager import MigrationManager
 from enum import Enum
+from piccolo.columns.base import OnDelete
+from piccolo.columns.base import OnUpdate
 from piccolo.columns.column_types import BigInt
 from piccolo.columns.column_types import Boolean
+from piccolo.columns.column_types import ForeignKey
 from piccolo.columns.column_types import Integer
 from piccolo.columns.column_types import Real
 from piccolo.columns.column_types import Text
 from piccolo.columns.column_types import Timestamptz
 from piccolo.columns.column_types import Varchar
 from piccolo.columns.indexes import IndexMethod
+from piccolo.table import Table
 
 
-ID = "2024-06-19T01:05:02:889126"
-VERSION = "1.11.0"
+class Nation(Table, tablename="nation", schema=None):
+    id = Integer(
+        default=0,
+        null=False,
+        primary_key=True,
+        unique=False,
+        index=False,
+        index_method=IndexMethod.btree,
+        choices=None,
+        db_column_name=None,
+        secret=False,
+    )
+
+
+ID = "2024-08-25T14:20:02:608002"
+VERSION = "1.16.0"
 DESCRIPTION = ""
 
 
@@ -21,56 +39,14 @@ async def forwards():
     )
 
     manager.add_table(
-        class_name="UserSettings",
-        tablename="user_settings",
-        schema=None,
-        columns=None,
-    )
-
-    manager.add_table(
         class_name="Nation", tablename="nation", schema=None, columns=None
     )
 
-    manager.add_column(
-        table_class_name="UserSettings",
-        tablename="user_settings",
-        column_name="discord_id",
-        db_column_name="discord_id",
-        column_class_name="BigInt",
-        column_class=BigInt,
-        params={
-            "default": 0,
-            "null": False,
-            "primary_key": True,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
+    manager.add_table(
+        class_name="RegisteredUser",
+        tablename="discord_user",
         schema=None,
-    )
-
-    manager.add_column(
-        table_class_name="UserSettings",
-        tablename="user_settings",
-        column_name="pnw_api_key",
-        db_column_name="pnw_api_key",
-        column_class_name="Text",
-        column_class=Text,
-        params={
-            "default": "",
-            "null": True,
-            "primary_key": False,
-            "unique": False,
-            "index": False,
-            "index_method": IndexMethod.btree,
-            "choices": None,
-            "db_column_name": None,
-            "secret": False,
-        },
-        schema=None,
+        columns=None,
     )
 
     manager.add_column(
@@ -874,6 +850,72 @@ async def forwards():
         params={
             "default": None,
             "null": False,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+        schema=None,
+    )
+
+    manager.add_column(
+        table_class_name="RegisteredUser",
+        tablename="discord_user",
+        column_name="discord_id",
+        db_column_name="discord_id",
+        column_class_name="BigInt",
+        column_class=BigInt,
+        params={
+            "default": 0,
+            "null": False,
+            "primary_key": True,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+        schema=None,
+    )
+
+    manager.add_column(
+        table_class_name="RegisteredUser",
+        tablename="discord_user",
+        column_name="nation",
+        db_column_name="nation",
+        column_class_name="ForeignKey",
+        column_class=ForeignKey,
+        params={
+            "references": Nation,
+            "on_delete": OnDelete.set_null,
+            "on_update": OnUpdate.cascade,
+            "target_column": None,
+            "null": True,
+            "primary_key": False,
+            "unique": False,
+            "index": False,
+            "index_method": IndexMethod.btree,
+            "choices": None,
+            "db_column_name": None,
+            "secret": False,
+        },
+        schema=None,
+    )
+
+    manager.add_column(
+        table_class_name="RegisteredUser",
+        tablename="discord_user",
+        column_name="pnw_api_key",
+        db_column_name="pnw_api_key",
+        column_class_name="Text",
+        column_class=Text,
+        params={
+            "default": "",
+            "null": True,
             "primary_key": False,
             "unique": False,
             "index": False,

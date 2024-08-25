@@ -98,6 +98,7 @@ class BaseTable(Table):
         super().__init_subclass__(
             tablename=tablename, db=db, tags=tags, help_text=help_text, schema=schema
         )
+
         cls._enforce_abstract_methods()
         cls._validate_and_create_pydantic_model()
 
@@ -133,6 +134,8 @@ class BaseTable(Table):
                     invalid_fields, similar_fields
                 )
             )
+
+        print(fields)
 
         cls.pydantic_model = create_model(
             f"{cls.__name__}Pydantic",
@@ -364,5 +367,5 @@ class PnwBaseTable(Generic[T], BaseTable):
         """
         Convert an API v3 model to a table instance.
         """
-        converted_model = cls.api_v3_model.model_validate(model.model_dump())
+        converted_model = cls.pydantic_model.model_validate(model.model_dump())
         return cls(**converted_model.model_dump())
