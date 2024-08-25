@@ -58,7 +58,7 @@ class Nation(PnwBaseTable[NationFields]):
     turns_since_last_city = Integer()
     turns_since_last_project = Integer()
     num_projects = Integer()  # API name: projects
-    project_bits = Integer()
+    project_bits = BigInt()
     wars_won = Integer()
     wars_lost = Integer()
     offensive_war_count = Integer()  # API name: offensive_wars_count
