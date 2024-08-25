@@ -87,7 +87,7 @@ class Nation(PnwBaseTable[NationFields]):
     def pydantic_overrides(cls) -> PydanticOverride:
         return [
             (cls.name, "nation_name", str),
-            (cls.update_timezone, "update_tz", float),
+            (cls.update_timezone, "update_tz", float | None),
             (cls.flag_url, "flag", str),
             (cls.date_created, "date", datetime),
             (cls.num_projects, "projects", int),

@@ -12,7 +12,8 @@ from pydantic import BaseModel
 
 import discord
 from discord.ext import commands
-from src.database.tables.pnw import City
+from src.bot.converters import NationConverter
+from src.database.tables.pnw import City, Nation
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
 
@@ -106,6 +107,21 @@ class Developer(commands.Cog):
         embed = WhoEmbed(state=state)
 
         await ctx.reply(embed=embed, view=self.confirm_view)
+
+    @dev.command()
+    async def who(
+        self,
+        ctx: commands.Context[Bot],
+        nation: Nation | None = commands.parameter(
+            converter=NationConverter, default=NationConverter.get_author
+        ),
+    ):
+        """Get your nation."""
+        if not nation:
+            await ctx.reply("Nation not found.")
+            return
+
+        await ctx.reply(f"Your nation is {nation.name}.")
 
     @dev.command()
     async def cities(self, ctx: commands.Context[Bot]):

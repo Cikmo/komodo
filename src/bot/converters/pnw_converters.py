@@ -2,10 +2,10 @@
 
 import logging
 
-import discord
-from discord.ext import commands
 from piccolo.query.functions import Lower
 
+import discord
+from discord.ext import commands
 from src.bot import Bot
 from src.database.tables.pnw import Nation
 from src.pnw.api_v3.get_nations import NationFields
@@ -55,6 +55,12 @@ class NationConverter(commands.Converter[Nation | None]):
 
         return await self._convert_from_user(user)
 
+    @staticmethod
+    async def get_author(ctx: commands.Context[Bot]) -> Nation | None:
+        """Get the nation of the author of a command."""
+
+        return await Nation.objects().where(Nation.discord_id == ctx.author.id).first()
+
     async def _convert_from_string_or_int(
         self,
         ctx: commands.Context[commands.Bot | commands.AutoShardedBot],
@@ -84,8 +90,6 @@ class NationConverter(commands.Converter[Nation | None]):
         self, user: discord.Member | discord.User
     ) -> Nation | None:
 
-        if not user:
-            return None
         return await Nation.objects().where(Nation.discord_id == user.id).first().run()
 
     async def _try_to_get_user(
