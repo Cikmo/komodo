@@ -3,6 +3,7 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+from .async_base_client import AsyncBaseClient
 from .base_model import UNSET, UnsetType
 from .get_cities import GetCities
 from .get_nations import GetNations
@@ -11,14 +12,13 @@ from .input_types import (
     QueryNationsOrderByOrderByClause,
 )
 from .mutation_bank_withdraw import MutationBankWithdraw
-from .ratelimited_client_base import AsyncBaseClientRatelimited
 
 
 def gql(q: str) -> str:
     return q
 
 
-class Client(AsyncBaseClientRatelimited):
+class Client(AsyncBaseClient):
     async def get_nations(
         self,
         nation_id: Union[Optional[List[int]], UnsetType] = UNSET,

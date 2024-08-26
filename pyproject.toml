@@ -45,8 +45,6 @@ schema_path = "resources/pnw_api_schema.graphql"
 queries_path = "resources/queries.graphql"
 target_package_name = "api_v3"
 target_package_path = "src/pnw"
-base_client_name = "AsyncBaseClientRatelimited"
-base_client_file_path = "src/pnw/ratelimited_client_base.py"
 
 [tool.ariadne-codegen.scalars.DateTimeAuto]
 type = "pydantic.AwareDatetime"

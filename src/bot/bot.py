@@ -15,6 +15,7 @@ import discord
 from discord.ext import commands
 from src.config.settings import get_settings
 from src.pnw.api_v3 import Client
+from src.pnw.ratelimited_async_client import RatelimitedAsyncClient
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class Bot(commands.Bot):
                 "X-Bot-Key": get_settings().pnw.bot_key,
                 "X-Api-Key": get_settings().pnw.api_key,
             },
+            http_client=RatelimitedAsyncClient(),
         )
 
         await load_all_cogs(self)
