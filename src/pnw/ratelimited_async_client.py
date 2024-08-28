@@ -4,6 +4,7 @@ from typing import Any
 
 from aiolimiter import AsyncLimiter
 from httpx import AsyncClient
+from httpx import _types as httpx_types  # type: ignore - cause of private import
 
 
 class RatelimitedAsyncClient(AsyncClient):
@@ -26,6 +27,8 @@ class RatelimitedAsyncClient(AsyncClient):
         self.rate_limiter = AsyncLimiter(max_rate=max_rate, time_period=time_period)
         super().__init__(*args, timeout=timeout, **kwargs)
 
-    async def request(self, *args: Any, **kwargs: Any):
+    async def request(
+        self, *args: Any, headers: httpx_types.HeaderTypes | None = None, **kwargs: Any
+    ):
         async with self.rate_limiter:
             return await super().request(*args, **kwargs)
