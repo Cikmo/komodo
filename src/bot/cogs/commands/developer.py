@@ -16,7 +16,7 @@ from src.bot.converters import NationConverter
 from src.database.tables.pnw import City, Nation
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
-from src.pnw.sync import sync_all_nations
+from src.pnw.paginator import sync_nations
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -114,7 +114,7 @@ class Developer(commands.Cog):
         """Sync all nations."""
         msg = await ctx.reply("Syncing all nations, this may take a moment...")
 
-        num_synced = await sync_all_nations(self.bot)
+        num_synced = await sync_nations(self.bot)
 
         await msg.edit(content=f"Completed! Synced {num_synced} nations.")
 
