@@ -15,9 +15,9 @@ import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
 from src.database.tables.pnw import City, Nation
+from src.database.update import update_pnw_table
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
-from src.pnw.paginator import sync_nations
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -118,10 +118,20 @@ class Developer(commands.Cog):
         )
 
         timer = default_timer()
-        num_synced = await sync_nations(
-            self.bot,
-            nation_ids=nation_id if nation_id else None,  # type: ignore
+
+        num_synced = await update_pnw_table(
+            table_class=Nation,
+            fetch_function=self.bot.api_v3.get_nations,
+            query_args={"nation_id": nation_id} if nation_id else {},
+            page_size=500 if not nation_id else 50,
+            batch_size=10 if not nation_id else 1,
         )
+
+        nation = await Nation.objects().get(where=Nation.id == 239259)
+        assert nation is not None
+
+        nation.refresh()
+
         timer = default_timer() - timer
 
         await msg.edit(
