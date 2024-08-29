@@ -20,7 +20,7 @@ async def update_pnw_table(
     batch_size: int = 5,
 ) -> int:
     """
-    Syncs data from the API to the database.
+    Updates data from the API to the database.
 
     Args:
         table_class: The database model class corresponding to the entity.
@@ -32,6 +32,8 @@ async def update_pnw_table(
     Returns:
         The number of rows inserted or updated.
     """
+    logger.info("Updating %s table...", table_class.__name__)
+
     query_args = query_args or {}
 
     async def insert_entities(entities: list[Any]) -> int:
@@ -58,8 +60,12 @@ async def update_pnw_table(
     current_insert_batch: list[Any] = []
     returned_ids: set[int] = set()
     async with db.transaction():
-        existing_ids: set[int] = set(
-            await table_class.select(table_class.id).output(as_list=True)  # type: ignore
+        existing_ids: set[int] = (
+            set(
+                await table_class.select(table_class.id).output(as_list=True)  # type: ignore
+            )
+            if not query_args
+            else set()
         )
 
         async for entity in paginator:
@@ -73,15 +79,17 @@ async def update_pnw_table(
         if current_insert_batch:
             total_inserted += await insert_entities(current_insert_batch)
 
-        ids_to_delete = existing_ids - returned_ids
-        if ids_to_delete:
-            logger.info(
-                "Deleting %s rows from %s that are not in the API response",
-                len(ids_to_delete),
-                table_class.__name__,
-            )
-            await table_class.delete().where(table_class.id.is_in(ids_to_delete))  # type: ignore
+        if not query_args:
+            ids_to_delete = existing_ids - returned_ids
+            if ids_to_delete:
+                logger.info(
+                    "Deleting %s rows from %s that are not in the API response",
+                    len(ids_to_delete),
+                    table_class.__name__,
+                )
+                await table_class.delete().where(table_class.id.is_in(ids_to_delete))  # type: ignore
 
+    logger.info("Updated %s rows to %s", total_inserted, table_class.__name__)
     return total_inserted
 
 
