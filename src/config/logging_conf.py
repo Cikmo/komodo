@@ -58,9 +58,11 @@ def setup_logging():
 
     root_logger = logging.getLogger()
     discord_logger = logging.getLogger("discord")
+    httpx_logger = logging.getLogger("httpx")
 
     root_logger.setLevel(settings.logging.stream.level)
     discord_logger.setLevel(settings.logging.stream.level_discord)
+    httpx_logger.setLevel("WARNING")
 
     ch = logging.StreamHandler()
     ch.setFormatter(StreamFormatter())
