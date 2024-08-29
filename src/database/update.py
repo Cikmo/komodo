@@ -56,9 +56,15 @@ async def update_pnw_table(
 
     total_inserted = 0
     current_insert_batch: list[Any] = []
+    returned_ids: set[int] = set()
     async with db.transaction():
+        existing_ids: set[int] = set(
+            await table_class.select(table_class.id).output(as_list=True)  # type: ignore
+        )
+
         async for entity in paginator:
             current_insert_batch.append(entity)
+            returned_ids.add(int(entity.id))
 
             if len(current_insert_batch) >= max_insert_batch_size:
                 total_inserted += await insert_entities(current_insert_batch)
@@ -66,6 +72,15 @@ async def update_pnw_table(
 
         if current_insert_batch:
             total_inserted += await insert_entities(current_insert_batch)
+
+        ids_to_delete = existing_ids - returned_ids
+        if ids_to_delete:
+            logger.info(
+                "Deleting %s rows from %s that are not in the API response",
+                len(ids_to_delete),
+                table_class.__name__,
+            )
+            await table_class.delete().where(table_class.id.is_in(ids_to_delete))  # type: ignore
 
     return total_inserted
 
