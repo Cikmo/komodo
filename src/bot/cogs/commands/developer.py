@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from timeit import default_timer
 from typing import TYPE_CHECKING, Any, Awaitable, Self
 
 from pydantic import BaseModel
@@ -114,9 +115,13 @@ class Developer(commands.Cog):
         """Sync all nations."""
         msg = await ctx.reply("Syncing all nations, this may take a moment...")
 
+        timer = default_timer()
         num_synced = await sync_nations(self.bot)
+        timer = default_timer() - timer
 
-        await msg.edit(content=f"Completed! Synced {num_synced} nations.")
+        await msg.edit(
+            content=f"Completed! Synced {num_synced} nations in {timer:.2f}s."
+        )
 
     @dev.command()
     async def who(

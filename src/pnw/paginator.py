@@ -46,6 +46,11 @@ class Paginator(Generic[T]):
             batch_size: The number of pages to fetch in each batch.
             **kwargs: Additional arguments to pass to the fetch function.
         """
+        if batch_size > 10:
+            logger.warning(
+                "It is not recommended to set the batch size greater than 10 due to rate limiting."
+            )
+
         self.fetch_function = fetch_function
         self.page_size = page_size
         self.batch_size = batch_size
@@ -97,41 +102,34 @@ class Paginator(Generic[T]):
                 if not result:
                     return
 
+                if not first_attr_value.paginator_info.has_more_pages:
+                    return
+
 
 async def sync_nations(bot: Bot):
     """Test function for the paginator."""
+
+    async def insert_nations(nations: List[GetNationsNationsData]) -> None:
+        """Inserts a list of nations into the database."""
+        batch_models = [Nation.from_api_v3(nation) for nation in nations]
+        inserted = await Nation.insert(*batch_models).on_conflict(
+            Nation.id, "DO UPDATE", Nation.all_columns(exclude=[Nation.id])
+        )
+        logger.info("Inserted %s nations", len(inserted))
 
     paginator = Paginator(
         fetch_function=bot.api_v3.get_nations, page_size=500, batch_size=10
     )
 
-    nations: list[list[GetNationsNationsData]] = []
     current_batch: list[GetNationsNationsData] = []
 
     async for nation in paginator:
         current_batch.append(nation)
 
-        # Check if the current batch has reached 100 items
-        if len(current_batch) == 100:
-            logger.info("Fetched %s nations", len(current_batch))
-            nations.append(current_batch)
+        if len(current_batch) == 200:
+            await insert_nations(current_batch)
             current_batch = []
 
     # Append the remaining nations in the current batch, if any
     if current_batch:
-        nations.append(current_batch)
-
-    logger.info("Total nations fetched: %s", sum(len(batch) for batch in nations))
-
-    # sync to database
-    all_columns_except_id = [
-        column for column in Nation.all_columns() if column != "id"
-    ]
-
-    for batch in nations:
-        batch_models = [Nation.from_api_v3(nation) for nation in batch]
-        inserted = await Nation.insert(*batch_models).on_conflict(
-            Nation.id, "DO UPDATE", all_columns_except_id
-        )
-
-        logger.info("Inserted %s nations", len(inserted))
+        await insert_nations(current_batch)
