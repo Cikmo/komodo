@@ -110,17 +110,22 @@ class Developer(commands.Cog):
 
         await ctx.reply(embed=embed, view=self.confirm_view)
 
-    @dev.command()
-    async def sync_all_nations(self, ctx: commands.Context[Bot]):
+    @dev.command(name="sync_nations")
+    async def sync_nations_command(self, ctx: commands.Context[Bot], *nation_id: int):
         """Sync all nations."""
-        msg = await ctx.reply("Syncing all nations, this may take a moment...")
+        msg = await ctx.reply(
+            f"Syncing {'all' if not nation_id else 'specified'} nations..."
+        )
 
         timer = default_timer()
-        num_synced = await sync_nations(self.bot)
+        num_synced = await sync_nations(
+            self.bot,
+            nation_ids=nation_id if nation_id else None,  # type: ignore
+        )
         timer = default_timer() - timer
 
         await msg.edit(
-            content=f"Completed! Synced {num_synced} nations in {timer:.2f}s."
+            content=f"Completed! Synced `{num_synced}` nations in `{timer:.2f}s`."
         )
 
     @dev.command()
