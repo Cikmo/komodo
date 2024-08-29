@@ -12,6 +12,8 @@ from src.pnw.paginator import Paginator
 logger = getLogger(__name__)
 
 
+# TODO: Make a seperate function for single / queried updates.
+# This simplifies the code and makes it more readable.
 async def update_pnw_table(
     table_class: type[PnwBaseTable[Any]],
     fetch_function: Callable[..., Awaitable[Any]],
