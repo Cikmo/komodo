@@ -15,6 +15,8 @@ from typing import (
     overload,
 )
 
+from piccolo.table import Table
+
 from src.bot import Bot
 from src.database.tables.pnw import Nation
 from src.pnw.api_v3 import GetCities, GetNations
@@ -93,7 +95,9 @@ class Paginator(Generic[T]):
         while True:
             results: list[T] = await self._fetch_batch()
             for result in results:
-                first_attr_name: str = next(iter(result.__dict__))
+                first_attr_name: str = next(  # pylint: disable=stop-iteration-return
+                    iter(result.__dict__)
+                )
                 first_attr_value: Any = getattr(result, first_attr_name)
 
                 for item in first_attr_value.data:
@@ -121,15 +125,27 @@ async def sync_nations(bot: Bot):
         fetch_function=bot.api_v3.get_nations, page_size=500, batch_size=10
     )
 
+    db = Nation._meta.db  # type: ignore # pylint: disable=protected-access
+
+    max_batch_size = get_max_batch_size(Nation)
+
     current_batch: list[GetNationsNationsData] = []
+    async with db.transaction():
+        async for nation in paginator:
+            current_batch.append(nation)
 
-    async for nation in paginator:
-        current_batch.append(nation)
+            if len(current_batch) == max_batch_size:
+                await insert_nations(current_batch)
+                current_batch = []
 
-        if len(current_batch) == 200:
+        # Append the remaining nations in the current batch, if any
+        if current_batch:
             await insert_nations(current_batch)
-            current_batch = []
 
-    # Append the remaining nations in the current batch, if any
-    if current_batch:
-        await insert_nations(current_batch)
+
+def get_max_batch_size(table: type[Table]) -> int:
+    """Calculates the maximum number of items that can be inserted in a single batch."""
+    postgres_max_parameters = 32767
+
+    assert issubclass(table, Table)
+    return postgres_max_parameters // len(table.all_columns())
