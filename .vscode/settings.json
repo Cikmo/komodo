@@ -11,5 +11,10 @@
     "source.organizeImports": "explicit"
   },
   "isort.args": ["--profile", "black"],
-  "black-formatter.importStrategy": "fromEnvironment"
+  "black-formatter.importStrategy": "fromEnvironment",
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.venv": true
+  }
 }
