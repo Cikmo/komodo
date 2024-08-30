@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
 from timeit import default_timer
 from typing import TYPE_CHECKING, Any, Awaitable, Self
 
@@ -19,7 +18,7 @@ from src.database.tables.pnw import City, Nation
 from src.database.update import update_pnw_table
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
-from src.pnw.utils import remaining_turn_change_duration
+from src.pnw.utils import is_turn_change_window
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -113,17 +112,11 @@ class Developer(commands.Cog):
         await ctx.reply(embed=embed, view=self.confirm_view)
 
     @dev.command()
-    async def turn(self, ctx: commands.Context[Bot], fake: bool = False):
+    async def turn(self, ctx: commands.Context[Bot]):
         """Check if it's a turn change."""
-        now = (
-            datetime.now(timezone.utc).replace(hour=2, minute=0, second=30)
-            if fake
-            else None
-        )
-
-        if turn_change := remaining_turn_change_duration(now):
+        if turn_change := is_turn_change_window():
             await ctx.send(
-                f"Turn change ends in {turn_change.total_seconds() // 60} minutes and {turn_change.total_seconds() % 60} seconds."
+                f"Turn change ends in {round(turn_change.total_seconds() / 60, 1)} minutes."
             )
             await asyncio.sleep(turn_change.total_seconds())
         await ctx.send("And we're done!")

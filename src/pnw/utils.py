@@ -5,42 +5,67 @@ from datetime import datetime, timedelta, timezone
 TURN_CHANGE_DURATION = 1
 DAY_CHANGE_DURATION = 10
 
+PRE_TURN_CHANGE_CHECK = 1
 
-def remaining_turn_change_duration(now: datetime | None = None) -> timedelta | None:
-    """Check if the current time is within a turn change window. Triggers 1 minute preemptively.
+
+def next_turn_change(now: datetime | None = None) -> datetime:
+    """Get the next turn change time."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    next_turn = now.hour + 2 - now.hour % 2
+    if next_turn >= 24:
+        # Wrap around to the next day
+        next_turn = 0
+        now += timedelta(days=1)
+    return now.replace(hour=next_turn, minute=0, second=0, microsecond=0)
+
+
+def previous_turn_change(now: datetime | None = None) -> datetime:
+    """Get the previous turn change time."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    previous_turn = now.hour - now.hour % 2
+    if previous_turn < 0:
+        # Wrap around to the previous day
+        previous_turn = 22
+        now -= timedelta(days=1)
+    return now.replace(hour=previous_turn, minute=0, second=0, microsecond=0)
+
+
+def is_turn_change_window(now: datetime | None = None) -> timedelta | None:
+    """Check if the current time is within a turn change window.
 
     Args:
         now: The datetime to check. Defaults to the current time in UTC.
 
     Returns:
-        The remaining duration until the next turn change, or None if no turn change is occurring.
+        The time remaining until the end of the turn change window, or None if the current time is not within a window.
     """
-    # Shift time by 1 minute into the future to account for preemptive triggering
-    if not now:
-        now = datetime.now(timezone.utc) + timedelta(minutes=1)
+    if now is None:
+        now = datetime.now(timezone.utc)
 
-    # Check if it's the start of a new day (UTC midnight)
-    if now.hour == 0:
-        if now.minute < (DAY_CHANGE_DURATION + 1):
-            remaining_duration = timedelta(
-                minutes=(DAY_CHANGE_DURATION + 1 - now.minute)
-            )
-            return remaining_duration
+    next_change = next_turn_change(now)
+    previous_change = previous_turn_change(now)
 
-    # Check if it's a regular turn change (every even hour)
-    if now.hour % 2 == 0 and now.minute < (TURN_CHANGE_DURATION + 1):
-        remaining_duration = timedelta(minutes=TURN_CHANGE_DURATION + 1 - now.minute)
-        return remaining_duration
+    duration_minutes: int
 
-    # If no turn change is occurring
+    if now.hour in (23, 0):
+        duration_minutes = DAY_CHANGE_DURATION
+    else:
+        duration_minutes = TURN_CHANGE_DURATION
+
+    time_until_next_change = next_change - now
+    time_since_previous_change = now - previous_change
+
+    if time_until_next_change <= timedelta(minutes=PRE_TURN_CHANGE_CHECK):
+        window_end = next_change + timedelta(minutes=duration_minutes)
+        return window_end - now
+
+    if time_since_previous_change <= timedelta(minutes=duration_minutes):
+        window_end = previous_change + timedelta(minutes=duration_minutes)
+        return window_end - now
+
     return None
-
-
-def next_turn_change() -> datetime:
-    """Get the next turn change time."""
-    now = datetime.now(timezone.utc)
-    next_hour = now.hour + 2 - now.hour % 2
-    return now.replace(hour=next_hour, minute=0, second=0, microsecond=0)
 
 
 def turns_to_datetime(turns: int) -> datetime:
