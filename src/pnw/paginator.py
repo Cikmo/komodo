@@ -4,7 +4,16 @@ from __future__ import annotations
 
 import asyncio
 from logging import getLogger
-from typing import Any, AsyncGenerator, Awaitable, Callable, Generic, TypeVar, overload
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Generic,
+    Protocol,
+    TypeVar,
+    overload,
+)
 
 from src.pnw.api_v3 import GetCities, GetNations
 from src.pnw.api_v3.get_cities import GetCitiesCitiesData
@@ -86,7 +95,7 @@ class Paginator(Generic[T]):
                 first_attr_name: str = next(  # pylint: disable=stop-iteration-return
                     iter(result.__dict__)
                 )
-                first_attr_value: Any = getattr(result, first_attr_name)
+                first_attr_value: FirstItem = getattr(result, first_attr_name)
 
                 for item in first_attr_value.data:
                     yield item
@@ -96,3 +105,16 @@ class Paginator(Generic[T]):
 
                 if not first_attr_value.paginator_info.has_more_pages:
                     return
+
+
+class PaginatorInfo(Protocol):
+    """A protocol for objects with a has_more_pages attribute."""
+
+    has_more_pages: bool
+
+
+class FirstItem(Protocol):
+    """A protocol for objects with a data attribute."""
+
+    data: GetCitiesCitiesData | GetNationsNationsData
+    paginator_info: PaginatorInfo

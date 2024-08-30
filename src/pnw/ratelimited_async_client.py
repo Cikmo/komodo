@@ -6,6 +6,8 @@ from typing import Any
 from aiolimiter import AsyncLimiter
 from httpx import AsyncClient, HTTPStatusError, Response, codes
 
+from src.pnw.exceptions import TooCloseToTurnChange
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +36,7 @@ class RatelimitedAsyncClient(AsyncClient):
 
     async def request(self, *args: Any, **kwargs: Any) -> Response:
         """Make a request with rate limiting."""
+
         async with self.limiter:
             response = await super().request(*args, **kwargs)
 

@@ -12,8 +12,6 @@ from src.pnw.paginator import Paginator
 logger = getLogger(__name__)
 
 
-# TODO: Make a seperate function for single / queried updates.
-# This simplifies the code and makes it more readable.
 async def update_pnw_table(
     table_class: type[PnwBaseTable[Any]],
     fetch_function: Callable[..., Awaitable[Any]],
@@ -22,7 +20,7 @@ async def update_pnw_table(
     batch_size: int = 5,
 ) -> int:
     """
-    Updates data from the API to the database.
+    Updates database rows with data fetched from the Politics and War API.
 
     Args:
         table_class: The database model class corresponding to the entity.
@@ -37,16 +35,6 @@ async def update_pnw_table(
     logger.info("Updating %s table...", table_class.__name__)
 
     query_args = query_args or {}
-
-    async def insert_entities(entities: list[Any]) -> int:
-        batch_models = [table_class.from_api_v3(entity) for entity in entities]
-        inserted = await table_class.insert(*batch_models).on_conflict(  # type: ignore
-            table_class.id,  # type: ignore
-            "DO UPDATE",
-            table_class.all_columns(exclude=[table_class.id]),  # type: ignore
-        )
-        return len(inserted)
-
     paginator = Paginator(
         fetch_function=fetch_function,
         page_size=page_size,
@@ -61,38 +49,94 @@ async def update_pnw_table(
     total_inserted = 0
     current_insert_batch: list[Any] = []
     returned_ids: set[int] = set()
+
     async with db.transaction():
-        existing_ids: set[int] = (
-            set(
-                await table_class.select(table_class.id).output(as_list=True)  # type: ignore
-            )
-            if not query_args
-            else set()
-        )
+        existing_ids = await _get_existing_ids(table_class, query_args)
 
         async for entity in paginator:
             current_insert_batch.append(entity)
             returned_ids.add(int(entity.id))
 
             if len(current_insert_batch) >= max_insert_batch_size:
-                total_inserted += await insert_entities(current_insert_batch)
+                total_inserted += await _insert_entities(
+                    current_insert_batch, table_class
+                )
                 current_insert_batch = []
 
         if current_insert_batch:
-            total_inserted += await insert_entities(current_insert_batch)
+            total_inserted += await _insert_entities(current_insert_batch, table_class)
 
         if not query_args:
-            ids_to_delete = existing_ids - returned_ids
-            if ids_to_delete:
-                logger.info(
-                    "Deleting %s rows from %s that are not in the API response",
-                    len(ids_to_delete),
-                    table_class.__name__,
-                )
-                await table_class.delete().where(table_class.id.is_in(ids_to_delete))  # type: ignore
+            await _delete_stale_ids(existing_ids, returned_ids, table_class)
 
     logger.info("Updated %s rows to %s", total_inserted, table_class.__name__)
     return total_inserted
+
+
+async def _insert_entities(
+    entities: list[Any], table_class: type[PnwBaseTable[Any]]
+) -> int:
+    """
+    Inserts or updates entities in the database.
+
+    Args:
+        entities: The list of entities to insert or update.
+        table_class: The database model class corresponding to the entity.
+
+    Returns:
+        The number of rows inserted or updated.
+    """
+    batch_models = [table_class.from_api_v3(entity) for entity in entities]
+    inserted = await table_class.insert(*batch_models).on_conflict(  # type: ignore
+        table_class.id,  # type: ignore
+        "DO UPDATE",
+        table_class.all_columns(exclude=[table_class.id]),  # type: ignore
+    )
+    return len(inserted)
+
+
+async def _get_existing_ids(
+    table_class: type[PnwBaseTable[Any]],
+    query_args: dict[str, Any],
+) -> set[int]:
+    """
+    Retrieves existing IDs from the database.
+
+    Args:
+        table_class: The database model class corresponding to the entity.
+        query_args: Query arguments passed to the fetch function.
+
+    Returns:
+        A set of existing IDs in the database.
+    """
+    if not query_args:
+        return set(
+            await table_class.select(table_class.id).output(as_list=True)  # type: ignore
+        )
+    return set()
+
+
+async def _delete_stale_ids(
+    existing_ids: set[int],
+    returned_ids: set[int],
+    table_class: type[PnwBaseTable[Any]],
+) -> None:
+    """
+    Deletes stale IDs that are no longer present in the API response.
+
+    Args:
+        existing_ids: The set of existing IDs in the database.
+        returned_ids: The set of IDs returned by the API.
+        table_class: The database model class corresponding to the entity.
+    """
+    ids_to_delete = existing_ids - returned_ids
+    if ids_to_delete:
+        logger.info(
+            "Deleting %s rows from %s that are not in the API response",
+            len(ids_to_delete),
+            table_class.__name__,
+        )
+        await table_class.delete().where(table_class.id.is_in(ids_to_delete))  # type: ignore
 
 
 @lru_cache
