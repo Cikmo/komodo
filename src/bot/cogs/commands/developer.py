@@ -18,7 +18,6 @@ from src.database.tables.pnw import City, Nation
 from src.database.update import update_pnw_table
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
-from src.pnw.utils import is_turn_change_window
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -110,16 +109,6 @@ class Developer(commands.Cog):
         embed = WhoEmbed(state=state)
 
         await ctx.reply(embed=embed, view=self.confirm_view)
-
-    @dev.command()
-    async def turn(self, ctx: commands.Context[Bot]):
-        """Check if it's a turn change."""
-        if turn_change := is_turn_change_window():
-            await ctx.send(
-                f"Turn change ends in {round(turn_change.total_seconds() / 60, 1)} minutes."
-            )
-            await asyncio.sleep(turn_change.total_seconds())
-        await ctx.send("And we're done!")
 
     @dev.command(name="sync_nations")
     async def sync_nations_command(self, ctx: commands.Context[Bot], *nation_id: int):
