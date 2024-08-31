@@ -81,14 +81,10 @@ def turns_to_datetime(turns: int, now: datetime | None = None) -> datetime:
     if now is None:
         now = datetime.now(timezone.utc)
 
-    dt = (now + timedelta(hours=turns * 2)).replace(minute=0, second=0, microsecond=0)
-
     if turns < 0:
-        dt += timedelta(hours=2)
-    elif turns == 0:
-        dt = now
+        raise ValueError("turns must be greater than or equal to 0")
 
-    return dt
+    return (now + timedelta(hours=turns * 2)).replace(minute=0, second=0, microsecond=0)
 
 
 def datetime_to_turns(dt: datetime, now: datetime | None = None):
@@ -104,16 +100,19 @@ def datetime_to_turns(dt: datetime, now: datetime | None = None):
     if not now:
         now = datetime.now(timezone.utc)
 
+    if dt < now:
+        # When I have time, add a way to calculate the number of turns in the past
+        # This was too hard for my little brain to figure out
+        raise ValueError("dt must be in the future")
+
     dt = dt.replace(minute=0, second=0, microsecond=0)
     now = now.replace(minute=0, second=0, microsecond=0)
+
     if now.hour % 2 != 0:
         now -= timedelta(hours=1)
 
     delta = dt - now
 
     turns = int(delta.total_seconds() / (60 * 60 * 2))
-
-    if delta.total_seconds() < 0:
-        turns -= 1
 
     return turns
