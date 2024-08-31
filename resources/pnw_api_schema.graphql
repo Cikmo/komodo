@@ -349,7 +349,7 @@ type Nation {
   id: ID!
 
   # ID of the alliance the nation is currently in (returns 0 if None)
-  alliance_id: ID!
+  alliance_id: ID
 
   # Enumeration representing the position of the nation in their alliance ('NOALLIANCE', 'APPLICANT', 'MEMBER', 'OFFICER', 'HEIR', or 'LEADER')
   alliance_position: AlliancePositionEnum!
@@ -1175,8 +1175,9 @@ type Alliance {
     orderBy: [AllianceNationsOrderByOrderByClause!]
   ): [Nation!]!
 
-  # The average score of all nations in the alliance (not including applicants)
-  average_score: Float!
+  # The average score of all nations in the alliance (not including applicants or nations in vacation mode)
+  # May be null if all nations in an alliance is in vacation mode
+  average_score: Float
 
   # Treaties the alliance has sent and that were approved [deprecated]
   # sent_treaties: [Treaty!]! @deprecated(reason: "Use treaties instead")

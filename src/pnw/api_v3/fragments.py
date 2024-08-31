@@ -17,6 +17,19 @@ from .enums import (
 )
 
 
+class AllianceFields(BaseModel):
+    id: str
+    name: str
+    acronym: str
+    score: float
+    color: str
+    date: AwareDatetime
+    average_score: Optional[float]
+    accept_members: bool
+    flag: str
+    rank: int
+
+
 class CityFields(BaseModel):
     id: str
     nation_id: str
@@ -57,7 +70,8 @@ class CityFields(BaseModel):
 
 class NationFields(BaseModel):
     id: str
-    alliance_id: str
+    alliance_id: Optional[str]
+    alliance_obj: Optional["NationFieldsAllianceObj"]
     alliance_position: AlliancePositionEnum
     alliance_position_id: str
     nation_name: str
@@ -129,11 +143,16 @@ class NationFields(BaseModel):
     alliance_join_date: Optional[AwareDatetime]
 
 
+class NationFieldsAllianceObj(BaseModel):
+    id: str
+
+
 class PaginatorFields(BaseModel):
     count: int
     has_more_pages: bool = Field(alias="hasMorePages")
 
 
+AllianceFields.model_rebuild()
 CityFields.model_rebuild()
 NationFields.model_rebuild()
 PaginatorFields.model_rebuild()

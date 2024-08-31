@@ -50,6 +50,31 @@ query get_cities(
   }
 }
 
+query get_alliances(
+  $alliance_id: [Int!]
+  $alliance_name: [String!]
+  $color: [String!]
+  $order_by: [QueryAlliancesOrderByOrderByClause!]
+  $page_size: Int = 10
+  $page: Int
+) {
+  alliances(
+    id: $alliance_id
+    name: $alliance_name
+    color: $color
+    orderBy: $order_by
+    first: $page_size
+    page: $page
+  ) {
+    data {
+      ...allianceFields
+    }
+    paginatorInfo {
+      ...paginatorFields
+    }
+  }
+}
+
 ### Mutations
 
 mutation mutation_bank_withdraw(
@@ -100,6 +125,9 @@ fragment paginatorFields on PaginatorInfo {
 fragment nationFields on Nation {
   id
   alliance_id
+  alliance_obj: alliance {
+    id
+  }
   alliance_position
   alliance_position_id
   nation_name
@@ -207,4 +235,17 @@ fragment cityFields on City {
   factory
   hangar
   drydock
+}
+
+fragment allianceFields on Alliance {
+  id
+  name
+  acronym
+  score
+  color
+  date
+  average_score
+  accept_members
+  flag
+  rank
 }

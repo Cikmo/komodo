@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Callable, Literal, overload
 
 from piccolo.table import Table
 
-from src.database.tables.pnw import City, Nation, PnwBaseTable
+from src.database.tables.pnw import Alliance, City, Nation, PnwBaseTable
 from src.pnw.api_v3 import Client
 from src.pnw.paginator import Paginator
 
@@ -37,6 +37,30 @@ async def update_all_nations(client: Client) -> tuple[int, int]:
     )
 
     return nations_inserted, cities_inserted
+
+
+async def update_alliances(client: Client) -> int:
+    """
+    Updates the alliances table with data fetched from the Politics and War API.
+
+    Returns:
+        The number of alliances inserted or updated.
+    """
+    return await update_pnw_table(
+        Alliance, client.get_alliances, page_size=500, batch_size=2
+    )
+
+
+async def update_all_tables(client: Client) -> tuple[int, int, int]:
+    """
+    Updates all tables with data fetched from the Politics and War API.
+
+    Returns:
+        A tuple containing the number of alliances, nations and cities inserted or updated.
+    """
+    alliances_inserted = await update_alliances(client)
+    nations_inserted, cities_inserted = await update_all_nations(client)
+    return alliances_inserted, nations_inserted, cities_inserted
 
 
 @overload
@@ -109,6 +133,8 @@ async def update_pnw_table(
         if len(current_insert_batch) >= max_insert_batch_size:
             total_inserted += await _insert_entities(current_insert_batch, table_class)
             current_insert_batch = []
+
+    print(current_insert_batch)
 
     if current_insert_batch:
         total_inserted += await _insert_entities(current_insert_batch, table_class)
@@ -191,6 +217,10 @@ async def _delete_stale_ids(
 @lru_cache
 def _get_max_batch_size(table: type[Table]) -> int:
     """Calculates the maximum number of items that can be inserted in a single batch."""
+    # Special case for alliances since it likes to act dumb
+    if table is Alliance:
+        return 500
+
     postgres_max_parameters = 32767
 
     assert issubclass(table, Table)

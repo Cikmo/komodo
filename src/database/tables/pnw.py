@@ -20,7 +20,46 @@ from piccolo.columns import (
 
 from src.database.base_table import PnwBaseTable, PydanticOverride
 from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy
-from src.pnw.api_v3 import CityFields, NationFields
+from src.pnw.api_v3 import AllianceFields, CityFields, NationFields
+
+
+class Alliance(PnwBaseTable[AllianceFields]):
+    """
+    A table to store information about alliances in the game.
+    """
+
+    id = Integer(primary_key=True)
+    name = Text()
+    acronym = Text()
+    score = Real()
+    color = Text(choices=Color)
+    date_created = Timestamptz()  # API name: date
+    average_score = Real()
+    accepts_members = Boolean()  # API name: accept_members
+    flag_url = Text()  # API name: flag
+    rank = Integer()
+
+    @property
+    def members(self):
+        """
+        Returns a query object for all the members of this alliance.
+        """
+        return Nation.objects().where(Nation.alliance == self)
+
+    @classmethod
+    def preprocess_api_v3_model(cls, model: AllianceFields) -> AllianceFields:
+        if model.average_score is None:
+            model.average_score = 0.0
+
+        return model
+
+    @classmethod
+    def pydantic_overrides(cls) -> PydanticOverride:
+        return [
+            (cls.date_created, "date", datetime),
+            (cls.accepts_members, "accept_members", bool),
+            (cls.flag_url, "flag", str),
+        ]
 
 
 class Nation(PnwBaseTable[NationFields]):
@@ -65,7 +104,7 @@ class Nation(PnwBaseTable[NationFields]):
     defensive_war_count = Integer()  # API name: defensive_wars_count
     alliance_join_date: Timestamptz | None = Timestamptz(null=True)
 
-    # alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
     # alliance_position = ForeignKey(
     #    references="AlliancePosition", on_delete=OnDelete.set_null
     # )
@@ -84,6 +123,13 @@ class Nation(PnwBaseTable[NationFields]):
         return City.objects().where(City.nation == self)
 
     @classmethod
+    def preprocess_api_v3_model(cls, model: NationFields) -> NationFields:
+        if model.alliance_id == "0" or model.alliance_obj is None:
+            model.alliance_id = None
+
+        return model
+
+    @classmethod
     def pydantic_overrides(cls) -> PydanticOverride:
         return [
             (cls.name, "nation_name", str),
@@ -93,6 +139,7 @@ class Nation(PnwBaseTable[NationFields]):
             (cls.num_projects, "projects", int),
             (cls.offensive_war_count, "offensive_wars_count", int),
             (cls.defensive_war_count, "defensive_wars_count", int),
+            (cls.alliance, "alliance_id", int | None),
         ]
 
 

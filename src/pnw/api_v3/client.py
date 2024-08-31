@@ -5,9 +5,11 @@ from typing import Any, Dict, List, Optional, Union
 
 from .async_base_client import AsyncBaseClient
 from .base_model import UNSET, UnsetType
+from .get_alliances import GetAlliances
 from .get_cities import GetCities
 from .get_nations import GetNations
 from .input_types import (
+    QueryAlliancesOrderByOrderByClause,
     QueryCitiesOrderByOrderByClause,
     QueryNationsOrderByOrderByClause,
 )
@@ -56,6 +58,9 @@ class Client(AsyncBaseClient):
             fragment nationFields on Nation {
               id
               alliance_id
+              alliance_obj: alliance {
+                id
+              }
               alliance_position
               alliance_position_id
               nation_name
@@ -234,6 +239,71 @@ class Client(AsyncBaseClient):
         )
         data = self.get_data(response)
         return GetCities.model_validate(data)
+
+    async def get_alliances(
+        self,
+        alliance_id: Union[Optional[List[int]], UnsetType] = UNSET,
+        alliance_name: Union[Optional[List[str]], UnsetType] = UNSET,
+        color: Union[Optional[List[str]], UnsetType] = UNSET,
+        order_by: Union[
+            Optional[List[QueryAlliancesOrderByOrderByClause]], UnsetType
+        ] = UNSET,
+        page_size: Union[Optional[int], UnsetType] = UNSET,
+        page: Union[Optional[int], UnsetType] = UNSET,
+        **kwargs: Any
+    ) -> GetAlliances:
+        query = gql(
+            """
+            query get_alliances($alliance_id: [Int!], $alliance_name: [String!], $color: [String!], $order_by: [QueryAlliancesOrderByOrderByClause!], $page_size: Int = 10, $page: Int) {
+              alliances(
+                id: $alliance_id
+                name: $alliance_name
+                color: $color
+                orderBy: $order_by
+                first: $page_size
+                page: $page
+              ) {
+                data {
+                  ...allianceFields
+                }
+                paginatorInfo {
+                  ...paginatorFields
+                }
+              }
+            }
+
+            fragment allianceFields on Alliance {
+              id
+              name
+              acronym
+              score
+              color
+              date
+              average_score
+              accept_members
+              flag
+              rank
+            }
+
+            fragment paginatorFields on PaginatorInfo {
+              count
+              hasMorePages
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "alliance_id": alliance_id,
+            "alliance_name": alliance_name,
+            "color": color,
+            "order_by": order_by,
+            "page_size": page_size,
+            "page": page,
+        }
+        response = await self.execute(
+            query=query, operation_name="get_alliances", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetAlliances.model_validate(data)
 
     async def mutation_bank_withdraw(
         self,

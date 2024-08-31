@@ -65,7 +65,19 @@ from .exceptions import (
     GraphQLClientHttpError,
     GraphQLClientInvalidResponseError,
 )
-from .fragments import CityFields, NationFields, PaginatorFields
+from .fragments import (
+    AllianceFields,
+    CityFields,
+    NationFields,
+    NationFieldsAllianceObj,
+    PaginatorFields,
+)
+from .get_alliances import (
+    GetAlliances,
+    GetAlliancesAlliances,
+    GetAlliancesAlliancesData,
+    GetAlliancesAlliancesPaginatorInfo,
+)
 from .get_cities import (
     GetCities,
     GetCitiesCities,
@@ -126,6 +138,7 @@ __all__ = [
     "AllianceBankrecsOrderByOrderByClause",
     "AllianceBulletinsOrderByColumn",
     "AllianceBulletinsOrderByOrderByClause",
+    "AllianceFields",
     "AllianceNationsOrderByColumn",
     "AllianceNationsOrderByOrderByClause",
     "AlliancePositionEnum",
@@ -150,6 +163,10 @@ __all__ = [
     "DomesticPolicy",
     "EconomicPolicy",
     "EmbargoType",
+    "GetAlliances",
+    "GetAlliancesAlliances",
+    "GetAlliancesAlliancesData",
+    "GetAlliancesAlliancesPaginatorInfo",
     "GetCities",
     "GetCitiesCities",
     "GetCitiesCitiesData",
@@ -173,6 +190,7 @@ __all__ = [
     "NationBulletinsOrderByColumn",
     "NationBulletinsOrderByOrderByClause",
     "NationFields",
+    "NationFieldsAllianceObj",
     "NationTaxrecsOrderByColumn",
     "NationTaxrecsOrderByOrderByClause",
     "NationTradesOrderByColumn",

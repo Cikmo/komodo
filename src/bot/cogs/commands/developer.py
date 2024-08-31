@@ -15,7 +15,7 @@ import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
 from src.database.tables.pnw import City, Nation
-from src.database.update import update_all_nations
+from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
 
@@ -119,12 +119,13 @@ class Developer(commands.Cog):
 
         timer = default_timer()
 
-        nations, cities = await update_all_nations(self.bot.api_v3)
+        alliances, nations, cities = await update_all_tables(self.bot.api_v3)
 
         timer = default_timer() - timer
 
         await msg.edit(
-            content=f"Completed! Synced `{nations}` nations and `{cities}` in `{timer:.2f}s`."
+            content=f"Completed! Synced `{alliances}` alliances, `{nations}`"
+            f" nations and `{cities}` cities in `{timer:.2f}s`."
         )
 
     @dev.command()
