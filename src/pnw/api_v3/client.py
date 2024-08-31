@@ -27,6 +27,7 @@ class Client(AsyncBaseClient):
         nation_name: Union[Optional[List[str]], UnsetType] = UNSET,
         discord_id: Union[Optional[List[str]], UnsetType] = UNSET,
         discord_name: Union[Optional[List[str]], UnsetType] = UNSET,
+        vacation_mode: Union[Optional[bool], UnsetType] = UNSET,
         order_by: Union[
             Optional[List[QueryNationsOrderByOrderByClause]], UnsetType
         ] = UNSET,
@@ -36,12 +37,13 @@ class Client(AsyncBaseClient):
     ) -> GetNations:
         query = gql(
             """
-            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $order_by: [QueryNationsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $vacation_mode: Boolean, $order_by: [QueryNationsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
               nations(
                 id: $nation_id
                 nation_name: $nation_name
                 discord_id: $discord_id
                 discord: $discord_name
+                vmode: $vacation_mode
                 orderBy: $order_by
                 first: $page_size
                 page: $page
@@ -143,6 +145,7 @@ class Client(AsyncBaseClient):
             "nation_name": nation_name,
             "discord_id": discord_id,
             "discord_name": discord_name,
+            "vacation_mode": vacation_mode,
             "order_by": order_by,
             "page_size": page_size,
             "page": page,

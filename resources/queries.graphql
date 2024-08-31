@@ -5,6 +5,7 @@ query get_nations(
   $nation_name: [String!]
   $discord_id: [String!]
   $discord_name: [String!]
+  $vacation_mode: Boolean
   $order_by: [QueryNationsOrderByOrderByClause!]
   $page_size: Int = 50
   $page: Int
@@ -14,6 +15,7 @@ query get_nations(
     nation_name: $nation_name
     discord_id: $discord_id
     discord: $discord_name
+    vmode: $vacation_mode
     orderBy: $order_by
     first: $page_size
     page: $page
