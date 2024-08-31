@@ -6,8 +6,6 @@ from typing import Any
 from aiolimiter import AsyncLimiter
 from httpx import AsyncClient, HTTPStatusError, Response, codes
 
-from src.pnw.exceptions import TooCloseToTurnChange
-
 logger = logging.getLogger(__name__)
 
 

@@ -1,3 +1,7 @@
+"""
+This module contains functions to update database rows with data fetched from the Politics and War API.
+"""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -6,10 +10,33 @@ from typing import Any, Awaitable, Callable
 
 from piccolo.table import Table
 
-from src.database.tables.pnw import PnwBaseTable
+from src.database.tables.pnw import City, Nation, PnwBaseTable
+from src.pnw.api_v3 import Client
 from src.pnw.paginator import Paginator
 
 logger = getLogger(__name__)
+
+
+async def update_all_nations(client: Client) -> tuple[int, int]:
+    """
+    Updates the nations table with data fetched from the Politics and War API.
+
+    Returns:
+        A tuple containing the number of nations and cities inserted or updated.
+    """
+
+    nations_inserted = await update_pnw_table(
+        Nation, client.get_nations, page_size=500, batch_size=10
+    )
+
+    cities_inserted = await update_pnw_table(
+        City,
+        client.get_cities,
+        page_size=500,
+        batch_size=10,
+    )
+
+    return nations_inserted, cities_inserted
 
 
 async def update_pnw_table(

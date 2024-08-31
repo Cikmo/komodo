@@ -105,7 +105,7 @@ class City(PnwBaseTable[CityFields]):
     name = Text()
     date_created = Timestamptz()  # API name: date
     infrastructure = Real()
-    land = Integer()
+    land = Real()
     powered = Boolean()
     last_nuke_date: Timestamptz | None = Timestamptz(
         null=True,
