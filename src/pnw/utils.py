@@ -68,34 +68,52 @@ def is_turn_change_window(now: datetime | None = None) -> timedelta | None:
     return None
 
 
-def turns_to_datetime(turns: int) -> datetime:
-    """Convert the number of turns to a datetime object."""
-    return datetime.now(timezone.utc) + timedelta(hours=turns * 2)
+def turns_to_datetime(turns: int, now: datetime | None = None) -> datetime:
+    """Convert a number of turns to a datetime object.
+
+    Args:
+        turns: The number of turns to convert.
+        now: The current datetime. Defaults to the current time in UTC.
+
+    Returns:
+        The datetime object representing the time in the future when the specified number of turns will pass.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+
+    dt = (now + timedelta(hours=turns * 2)).replace(minute=0, second=0, microsecond=0)
+
+    if turns < 0:
+        dt += timedelta(hours=2)
+    elif turns == 0:
+        dt = now
+
+    return dt
 
 
-# THIS DOES NOT FUCKING WORK, FIX IT
 def datetime_to_turns(dt: datetime, now: datetime | None = None):
-    """Convert a datetime object to the number of turns."""
-    # Get the current time
+    """Convert a datetime object to the number of turns until that time.
+
+    Args:
+        dt: The datetime to convert.
+        now: The current datetime. Defaults to the current time in UTC.
+
+    Returns:
+        The number of turns until the specified datetime.
+    """
     if not now:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
-    # Calculate the difference in hours between now and the target datetime
-    total_seconds = (dt - now).total_seconds()
-    total_hours = total_seconds // 3600
+    dt = dt.replace(minute=0, second=0, microsecond=0)
+    now = now.replace(minute=0, second=0, microsecond=0)
+    if now.hour % 2 != 0:
+        now -= timedelta(hours=1)
 
-    # Calculate the full even hours that would fall between now and the target datetime
-    if total_hours > 0:
-        # Moving forward in time
-        start_hour = (
-            (now.hour // 2 + 1) * 2
-            if now.minute > 0 or now.second > 0
-            else now.hour + 2
-        )
-        end_hour = (dt.hour // 2) * 2
-        return max(0, (end_hour - start_hour) // 2 + 1)
-    else:
-        # Moving backward in time
-        start_hour = (now.hour // 2) * 2
-        end_hour = (dt.hour // 2 + 1) * 2 if dt.minute > 0 or dt.second > 0 else dt.hour
-        return max(0, (start_hour - end_hour) // 2 + 1)
+    delta = dt - now
+
+    turns = int(delta.total_seconds() / (60 * 60 * 2))
+
+    if delta.total_seconds() < 0:
+        turns -= 1
+
+    return turns
