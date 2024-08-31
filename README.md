@@ -4,26 +4,25 @@ A Politics and War discord bot. In development and constant breaking changes.
 
 Have a good day, reader.
 
-## Extrenal Requirements
 ## External Requirements
+
 - Poetry
 - Postgres
 
 ## Basic Setup
 
 1. Clone the repository
-
 2. cd into the directory, and install the dependencies
 
-```bash
-poetry install
-```
+    ```bash
+    poetry install
+    ```
 
 3. Run the program to generate the setting file
 
-```bash
-./komodo run [dev|prod]
-```
+    ```bash
+    ./komodo run [dev|prod]
+    ```
 
 4. Make sure you have a postgres database running and create a database for the bot.
 
@@ -31,15 +30,15 @@ poetry install
 
 6. Run migrations. This will create the tables in the database.
 
-```bash
-piccolo migrations forwards komodo
-```
+    ```bash
+    piccolo migrations forwards komodo
+    ```
 
 7. Finally, run the bot
 
-```bash
-./komodo run [dev|prod]
-```
+    ```bash
+    ./komodo run [dev|prod]
+    ```
 
 ## Advanced Setup
 
