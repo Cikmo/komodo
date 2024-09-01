@@ -8,6 +8,7 @@ from functools import lru_cache
 from logging import getLogger
 from typing import Any, Awaitable, Callable, Literal, overload
 
+from asyncpg.exceptions import ForeignKeyViolationError  # type: ignore
 from piccolo.table import Table
 
 from src.database.tables.pnw import (
@@ -64,7 +65,12 @@ async def update_alliances(client: Client) -> tuple[int, int]:
     # are nested within the alliances data. This is not the case for other entities.
     # I might need to create some kind of generic solution for this in the future.
 
+    logger.info("Updating alliances and alliance positions...")
+
     paginator = Paginator(client.get_alliances, page_size=500, batch_size=2)
+
+    existing_alliance_ids = await _get_existing_ids(Alliance, {})
+    existing_position_ids = await _get_existing_ids(AlliancePosition, {})
 
     all_alliances: list[GetAlliancesAlliancesData] = []
     all_positions: list[AllianceFieldsAlliancePositions] = []
@@ -73,6 +79,14 @@ async def update_alliances(client: Client) -> tuple[int, int]:
         all_alliances.append(alliance)
         for position in alliance.alliance_positions:
             all_positions.append(position)
+
+    # Delete alliances and positions that are no longer present in the API response.
+    await _delete_stale_ids(
+        existing_position_ids, set(int(p.id) for p in all_positions), AlliancePosition
+    )
+    await _delete_stale_ids(
+        existing_alliance_ids, set(int(a.id) for a in all_alliances), Alliance
+    )
 
     alliances_inserted: int = 0
     positions_inserted: int = 0
@@ -173,7 +187,29 @@ async def update_pnw_table(
         returned_ids.add(int(entity.id))
 
         if len(current_insert_batch) >= max_insert_batch_size:
-            total_inserted += await _insert_entities(current_insert_batch, table_class)
+            try:
+                total_inserted += await _insert_entities(
+                    current_insert_batch, table_class
+                )
+            except ForeignKeyViolationError as e:
+                logger.error(
+                    "Failed to insert some entities in table %s: %s",
+                    table_class.__name__,
+                    e,
+                )
+                logger.info("Attempting to insert entities one by one...")
+                for entity_2 in current_insert_batch:
+                    try:
+                        total_inserted += await _insert_entities(
+                            [entity_2], table_class
+                        )
+
+                    except ForeignKeyViolationError:
+                        logger.error(
+                            "Failed to insert entity with ID %s in table %s",
+                            entity_2.id,
+                            table_class.__name__,
+                        )
             current_insert_batch = []
 
     if current_insert_batch:
