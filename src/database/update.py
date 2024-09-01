@@ -137,8 +137,6 @@ async def update_pnw_table(
             total_inserted += await _insert_entities(current_insert_batch, table_class)
             current_insert_batch = []
 
-    print(current_insert_batch)
-
     if current_insert_batch:
         total_inserted += await _insert_entities(current_insert_batch, table_class)
 
@@ -220,10 +218,6 @@ async def _delete_stale_ids(
 @lru_cache
 def _get_max_batch_size(table: type[Table]) -> int:
     """Calculates the maximum number of items that can be inserted in a single batch."""
-    # Special case for alliances since it likes to act dumb
-    if table is Alliance:
-        return 500
-
     postgres_max_parameters = 32767
 
     assert issubclass(table, Table)
