@@ -56,7 +56,7 @@ query get_alliances(
   $alliance_id: [Int!]
   $alliance_name: [String!]
   $color: [String!]
-  $order_by: [QueryAlliancesOrderByOrderByClause!]
+  #$order_by: [QueryAlliancesOrderByOrderByClause!]
   $page_size: Int = 10
   $page: Int
 ) {
@@ -64,7 +64,7 @@ query get_alliances(
     id: $alliance_id
     name: $alliance_name
     color: $color
-    orderBy: $order_by
+    orderBy: { column: SCORE, order: ASC } # we need to do this otherwise it doesn't return all alliances
     first: $page_size
     page: $page
   ) {

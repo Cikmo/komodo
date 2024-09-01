@@ -9,7 +9,6 @@ from .get_alliances import GetAlliances
 from .get_cities import GetCities
 from .get_nations import GetNations
 from .input_types import (
-    QueryAlliancesOrderByOrderByClause,
     QueryCitiesOrderByOrderByClause,
     QueryNationsOrderByOrderByClause,
 )
@@ -248,21 +247,18 @@ class Client(AsyncBaseClient):
         alliance_id: Union[Optional[List[int]], UnsetType] = UNSET,
         alliance_name: Union[Optional[List[str]], UnsetType] = UNSET,
         color: Union[Optional[List[str]], UnsetType] = UNSET,
-        order_by: Union[
-            Optional[List[QueryAlliancesOrderByOrderByClause]], UnsetType
-        ] = UNSET,
         page_size: Union[Optional[int], UnsetType] = UNSET,
         page: Union[Optional[int], UnsetType] = UNSET,
         **kwargs: Any
     ) -> GetAlliances:
         query = gql(
             """
-            query get_alliances($alliance_id: [Int!], $alliance_name: [String!], $color: [String!], $order_by: [QueryAlliancesOrderByOrderByClause!], $page_size: Int = 10, $page: Int) {
+            query get_alliances($alliance_id: [Int!], $alliance_name: [String!], $color: [String!], $page_size: Int = 10, $page: Int) {
               alliances(
                 id: $alliance_id
                 name: $alliance_name
                 color: $color
-                orderBy: $order_by
+                orderBy: {column: SCORE, order: ASC}
                 first: $page_size
                 page: $page
               ) {
@@ -298,7 +294,6 @@ class Client(AsyncBaseClient):
             "alliance_id": alliance_id,
             "alliance_name": alliance_name,
             "color": color,
-            "order_by": order_by,
             "page_size": page_size,
             "page": page,
         }
