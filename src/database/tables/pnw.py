@@ -19,12 +19,13 @@ from piccolo.columns import (
 )
 
 from src.database.base_table import PnwBaseTable, PydanticOverride
-from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy
+from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy, WarType
 from src.pnw.api_v3 import (
     AllianceFields,
     AlliancePositionFields,
     CityFields,
     NationFields,
+    WarFields,
 )
 
 
@@ -282,4 +283,117 @@ class City(PnwBaseTable[CityFields]):
             (cls.hangars, "hangar", int),
             (cls.drydocks, "drydock", int),
             (cls.nation, "nation_id", int),
+        ]
+
+
+class War(PnwBaseTable[WarFields]):
+    """
+    A table to store information about wars in the game.
+    """
+
+    id = Integer(primary_key=True)
+    start_date = Timestamptz()  # API name: date
+    end_date = Timestamptz(default=None, null=True)
+    reason = Text()
+    war_type = Text(choices=WarType)
+    turns_left = Integer()
+    attacker_action_points = Integer()  # API name: att_points
+    defender_action_points = Integer()  # API name: def_points
+    attacker_offering_peace = Boolean()  # API name: att_peace
+    defender_offering_peace = Boolean()  # API name: def_peace
+    attacker_resistance = Integer()  # API name: att_resistance
+    defender_resistance = Integer()  # API name: def_resistance
+    attacker_fortified = Boolean()  # API name: att_fortify
+    defender_fortified = Boolean()  # API name: def_fortify
+    attacker_gasoline_used = Real()  # API name: att_gas_used
+    defender_gasoline_used = Real()  # API name: def_gas_used
+    attacker_munitions_used = Real()  # API name: att_mun_used
+    defender_munitions_used = Real()  # API name: def_mun_used
+    attacker_aluminum_used = Real()  # API name: att_alum_used
+    defender_aluminum_used = Real()  # API name: def_alum_used
+    attacker_steel_used = Real()  # API name: att_steel_used
+    defender_steel_used = Real()  # API name: def_steel_used
+    attacker_infra_destroyed = Real()  # API name: att_infra_destroyed
+    defender_infra_destroyed = Real()  # API name: def_infra_destroyed
+    attacker_money_looted = Real()  # API name: att_money_looted
+    defender_money_looted = Real()  # API name: def_money_looted
+    attacker_soldiers_lost = Integer()  # API name: att_soldiers_lost
+    defender_soldiers_lost = Integer()  # API name: def_soldiers_lost
+    attacker_tanks_lost = Integer()  # API name: att_tanks_lost
+    defender_tanks_lost = Integer()  # API name: def_tanks_lost
+    attacker_aircraft_lost = Integer()  # API name: att_aircraft_lost
+    defender_aircraft_lost = Integer()  # API name: def_aircraft_lost
+    attacker_ships_lost = Integer()  # API name: att_ships_lost
+    defender_ships_lost = Integer()  # API name: def_ships_lost
+    attacker_missiles_used = Integer()  # API name: att_missiles_used
+    defender_missiles_used = Integer()  # API name: def_missiles_used
+    attacker_nukes_used = Integer()  # API name: att_nukes_used
+    defender_nukes_used = Integer()  # API name: def_nukes_used
+    attacker_infra_destroyed_value = Real()  # API name: att_infra_destroyed_value
+    defender_infra_destroyed_value = Real()  # API name: def_infra_destroyed_value
+
+    attacker_id = Integer()  # API name: att_id
+    defender_id = Integer()  # API name: def_id
+    ground_control_id = Integer(null=True)  # API name: ground_control
+    air_superiority_id = Integer(null=True)  # API name: air_superiority
+    naval_blockade_id = Integer(null=True)  # API name: naval_blockade
+    winner_id = Integer(null=True)
+
+    @classmethod
+    def preprocess_api_v3_model(cls, model: WarFields) -> WarFields:
+        if model.ground_control == "0":
+            model.ground_control = None
+        if model.air_superiority == "0":
+            model.air_superiority = None
+        if model.naval_blockade == "0":
+            model.naval_blockade = None
+        if model.winner_id == "0":
+            model.winner_id = None
+
+        return model
+
+    @classmethod
+    def pydantic_overrides(cls) -> PydanticOverride:
+        return [
+            (cls.start_date, "date", datetime),
+            (cls.attacker_action_points, "att_points", int),
+            (cls.defender_action_points, "def_points", int),
+            (cls.attacker_offering_peace, "att_peace", bool),
+            (cls.defender_offering_peace, "def_peace", bool),
+            (cls.attacker_resistance, "att_resistance", int),
+            (cls.defender_resistance, "def_resistance", int),
+            (cls.attacker_fortified, "att_fortify", bool),
+            (cls.defender_fortified, "def_fortify", bool),
+            (cls.attacker_gasoline_used, "att_gas_used", float),
+            (cls.defender_gasoline_used, "def_gas_used", float),
+            (cls.attacker_munitions_used, "att_mun_used", float),
+            (cls.defender_munitions_used, "def_mun_used", float),
+            (cls.attacker_aluminum_used, "att_alum_used", float),
+            (cls.defender_aluminum_used, "def_alum_used", float),
+            (cls.attacker_steel_used, "att_steel_used", float),
+            (cls.defender_steel_used, "def_steel_used", float),
+            (cls.attacker_infra_destroyed, "att_infra_destroyed", float),
+            (cls.defender_infra_destroyed, "def_infra_destroyed", float),
+            (cls.attacker_money_looted, "att_money_looted", int),
+            (cls.defender_money_looted, "def_money_looted", int),
+            (cls.attacker_soldiers_lost, "att_soldiers_lost", int),
+            (cls.defender_soldiers_lost, "def_soldiers_lost", int),
+            (cls.attacker_tanks_lost, "att_tanks_lost", int),
+            (cls.defender_tanks_lost, "def_tanks_lost", int),
+            (cls.attacker_aircraft_lost, "att_aircraft_lost", int),
+            (cls.defender_aircraft_lost, "def_aircraft_lost", int),
+            (cls.attacker_ships_lost, "att_ships_lost", int),
+            (cls.defender_ships_lost, "def_ships_lost", int),
+            (cls.attacker_missiles_used, "att_missiles_used", int),
+            (cls.defender_missiles_used, "def_missiles_used", int),
+            (cls.attacker_nukes_used, "att_nukes_used", int),
+            (cls.defender_nukes_used, "def_nukes_used", int),
+            (cls.attacker_infra_destroyed_value, "att_infra_destroyed_value", float),
+            (cls.defender_infra_destroyed_value, "def_infra_destroyed_value", float),
+            (cls.attacker_id, "att_id", int),
+            (cls.defender_id, "def_id", int),
+            (cls.ground_control_id, "ground_control", int | None),
+            (cls.air_superiority_id, "air_superiority", int | None),
+            (cls.naval_blockade_id, "naval_blockade", int | None),
+            (cls.winner_id, "winner_id", int | None),
         ]

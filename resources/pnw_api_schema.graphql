@@ -1726,25 +1726,25 @@ type War {
   # groundcontrol: ID @deprecated(reason: "Use ground_control instead.")
 
   # ID of the nation that currently has ground control (0 if neither)
-  ground_control: ID!
+  ground_control: ID
 
   # ID of the nation that currently has air superiority (0 if neither) [deprecated]
   # airsuperiority: ID @deprecated(reason: "Use air_superiority instead.")
 
   # ID of the nation that currently has air superiority (0 if neither)
-  air_superiority: ID!
+  air_superiority: ID
 
   # ID of the nation that currently has the other blockaded (0 if neither) [deprecated]
   # navalblockade: ID @deprecated(reason: "Use naval_blockade instead.")
 
   # ID of the nation that currently has the other blockaded (0 if neither)
-  naval_blockade: ID!
+  naval_blockade: ID
 
   # ID of the nation that won the war (0 if neither due to peace or expiration) [deprecated]
   # winner: ID @deprecated(reason: "Use winner_id instead.")
 
   # ID of the nation that won the war (0 if neither due to peace or expiration)
-  winner_id: ID!
+  winner_id: ID
 
   # List of attacks performed
   attacks(

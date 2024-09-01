@@ -17,6 +17,7 @@ from src.database.tables.pnw import (
     City,
     Nation,
     PnwBaseTable,
+    War,
 )
 from src.pnw.api_v3 import (
     AllianceFieldsAlliancePositions,
@@ -43,14 +44,31 @@ async def update_all_nations(client: Client) -> tuple[int, int]:
         batch_size=10,
     )
 
-    cities_inserted = await update_pnw_table(
-        City,
-        client.get_cities,
+    # cities_inserted = await update_pnw_table(
+    #     City,
+    #     client.get_cities,
+    #     page_size=500,
+    #     batch_size=10,
+    # )
+
+    cities_inserted = 0
+
+    return nations_inserted, cities_inserted
+
+
+async def update_all_wars(client: Client) -> int:
+    """
+    Updates the wars table with data fetched from the Politics and War API.
+
+    Returns:
+        The number of wars inserted or updated.
+    """
+    return await update_pnw_table(
+        War,
+        client.get_wars,
         page_size=500,
         batch_size=10,
     )
-
-    return nations_inserted, cities_inserted
 
 
 async def update_alliances(client: Client) -> tuple[int, int]:
@@ -82,10 +100,10 @@ async def update_alliances(client: Client) -> tuple[int, int]:
 
     # Delete alliances and positions that are no longer present in the API response.
     await _delete_stale_ids(
-        existing_position_ids, set(int(p.id) for p in all_positions), AlliancePosition
+        existing_alliance_ids, set(int(a.id) for a in all_alliances), Alliance
     )
     await _delete_stale_ids(
-        existing_alliance_ids, set(int(a.id) for a in all_alliances), Alliance
+        existing_position_ids, set(int(p.id) for p in all_positions), AlliancePosition
     )
 
     alliances_inserted: int = 0
@@ -107,7 +125,7 @@ async def update_alliances(client: Client) -> tuple[int, int]:
     return alliances_inserted, positions_inserted
 
 
-async def update_all_tables(client: Client) -> tuple[int, int, int, int]:
+async def update_all_tables(client: Client) -> tuple[int, int, int, int, int]:
     """
     Updates all tables with data fetched from the Politics and War API.
 
@@ -116,7 +134,14 @@ async def update_all_tables(client: Client) -> tuple[int, int, int, int]:
     """
     alliances_inserted, positions_inserted = await update_alliances(client)
     nations_inserted, cities_inserted = await update_all_nations(client)
-    return alliances_inserted, positions_inserted, nations_inserted, cities_inserted
+    wars_inserted = await update_all_wars(client)
+    return (
+        alliances_inserted,
+        positions_inserted,
+        nations_inserted,
+        cities_inserted,
+        wars_inserted,
+    )
 
 
 @overload

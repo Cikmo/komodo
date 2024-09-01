@@ -13,6 +13,7 @@ from .enums import (
     GovernmentType,
     SocialPolicy,
     WarPolicy,
+    WarType,
 )
 
 
@@ -171,8 +172,58 @@ class PaginatorFields(BaseModel):
     has_more_pages: bool = Field(alias="hasMorePages")
 
 
+class WarFields(BaseModel):
+    id: str
+    date: AwareDatetime
+    end_date: Optional[AwareDatetime]
+    reason: str
+    war_type: WarType
+    ground_control: Optional[str]
+    air_superiority: Optional[str]
+    naval_blockade: Optional[str]
+    winner_id: Optional[str]
+    turns_left: int
+    att_id: str
+    def_id: str
+    att_points: int
+    def_points: int
+    att_peace: bool
+    def_peace: bool
+    att_resistance: int
+    def_resistance: int
+    att_fortify: bool
+    def_fortify: bool
+    att_gas_used: float
+    def_gas_used: float
+    att_mun_used: float
+    def_mun_used: float
+    att_alum_used: float
+    def_alum_used: float
+    att_steel_used: float
+    def_steel_used: float
+    att_infra_destroyed: float
+    def_infra_destroyed: float
+    att_money_looted: float
+    def_money_looted: float
+    att_soldiers_lost: int
+    def_soldiers_lost: int
+    att_tanks_lost: int
+    def_tanks_lost: int
+    att_aircraft_lost: int
+    def_aircraft_lost: int
+    att_ships_lost: int
+    def_ships_lost: int
+    att_missiles_used: int
+    def_missiles_used: int
+    att_nukes_used: int
+    def_nukes_used: int
+    att_infra_destroyed_value: float
+    def_infra_destroyed_value: float
+
+
 AlliancePositionFields.model_rebuild()
 AllianceFields.model_rebuild()
 CityFields.model_rebuild()
 NationFields.model_rebuild()
 PaginatorFields.model_rebuild()
+WarFields.model_rebuild()

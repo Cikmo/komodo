@@ -8,9 +8,11 @@ from .base_model import UNSET, UnsetType
 from .get_alliances import GetAlliances
 from .get_cities import GetCities
 from .get_nations import GetNations
+from .get_wars import GetWars
 from .input_types import (
     QueryCitiesOrderByOrderByClause,
     QueryNationsOrderByOrderByClause,
+    QueryWarsOrderByOrderByClause,
 )
 from .mutation_bank_withdraw import MutationBankWithdraw
 
@@ -320,6 +322,104 @@ class Client(AsyncBaseClient):
         )
         data = self.get_data(response)
         return GetAlliances.model_validate(data)
+
+    async def get_wars(
+        self,
+        war_id: Union[Optional[List[int]], UnsetType] = UNSET,
+        active: Union[Optional[bool], UnsetType] = UNSET,
+        order_by: Union[
+            Optional[List[QueryWarsOrderByOrderByClause]], UnsetType
+        ] = UNSET,
+        page_size: Union[Optional[int], UnsetType] = UNSET,
+        page: Union[Optional[int], UnsetType] = UNSET,
+        **kwargs: Any
+    ) -> GetWars:
+        query = gql(
+            """
+            query get_wars($war_id: [Int!], $active: Boolean = false, $order_by: [QueryWarsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+              wars(
+                id: $war_id
+                active: $active
+                orderBy: $order_by
+                first: $page_size
+                page: $page
+              ) {
+                data {
+                  ...warFields
+                }
+                paginatorInfo {
+                  ...paginatorFields
+                }
+              }
+            }
+
+            fragment paginatorFields on PaginatorInfo {
+              count
+              hasMorePages
+            }
+
+            fragment warFields on War {
+              id
+              date
+              end_date
+              reason
+              war_type
+              ground_control
+              air_superiority
+              naval_blockade
+              winner_id
+              turns_left
+              att_id
+              def_id
+              att_points
+              def_points
+              att_peace
+              def_peace
+              att_resistance
+              def_resistance
+              att_fortify
+              def_fortify
+              att_gas_used
+              def_gas_used
+              att_mun_used
+              def_mun_used
+              att_alum_used
+              def_alum_used
+              att_steel_used
+              def_steel_used
+              att_infra_destroyed
+              def_infra_destroyed
+              att_money_looted
+              def_money_looted
+              att_soldiers_lost
+              def_soldiers_lost
+              att_tanks_lost
+              def_tanks_lost
+              att_aircraft_lost
+              def_aircraft_lost
+              att_ships_lost
+              def_ships_lost
+              att_missiles_used
+              def_missiles_used
+              att_nukes_used
+              def_nukes_used
+              att_infra_destroyed_value
+              def_infra_destroyed_value
+            }
+            """
+        )
+        variables: Dict[str, object] = {
+            "war_id": war_id,
+            "active": active,
+            "order_by": order_by,
+            "page_size": page_size,
+            "page": page,
+        }
+        response = await self.execute(
+            query=query, operation_name="get_wars", variables=variables, **kwargs
+        )
+        data = self.get_data(response)
+        return GetWars.model_validate(data)
 
     async def mutation_bank_withdraw(
         self,

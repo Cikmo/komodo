@@ -77,6 +77,28 @@ query get_alliances(
   }
 }
 
+query get_wars(
+  $war_id: [Int!]
+  $active: Boolean = false
+  $page_size: Int = 50
+  $page: Int
+) {
+  wars(
+    id: $war_id
+    active: $active
+    orderBy: { column: DATE, order: DESC }
+    first: $page_size
+    page: $page
+  ) {
+    data {
+      ...warFields
+    }
+    paginatorInfo {
+      ...paginatorFields
+    }
+  }
+}
+
 ### Mutations
 
 mutation mutation_bank_withdraw(
@@ -268,4 +290,53 @@ fragment alliancePositionFields on AlliancePosition {
   officer
   member
   permissions
+}
+
+fragment warFields on War {
+  id
+  date
+  end_date
+  reason
+  war_type
+  ground_control
+  air_superiority
+  naval_blockade
+  winner_id
+  turns_left
+  att_id
+  def_id
+  att_points
+  def_points
+  att_peace
+  def_peace
+  att_resistance
+  def_resistance
+  att_fortify
+  def_fortify
+  att_gas_used
+  def_gas_used
+  att_mun_used
+  def_mun_used
+  att_alum_used
+  def_alum_used
+  att_steel_used
+  def_steel_used
+  att_infra_destroyed
+  def_infra_destroyed
+  att_money_looted
+  def_money_looted
+  att_soldiers_lost
+  def_soldiers_lost
+  att_tanks_lost
+  def_tanks_lost
+  att_aircraft_lost
+  def_aircraft_lost
+  att_ships_lost
+  def_ships_lost
+  att_missiles_used
+  def_missiles_used
+  att_nukes_used
+  def_nukes_used
+  att_infra_destroyed_value
+  def_infra_destroyed_value
 }

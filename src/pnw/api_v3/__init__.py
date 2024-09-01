@@ -73,6 +73,7 @@ from .fragments import (
     NationFields,
     NationFieldsAllianceObj,
     PaginatorFields,
+    WarFields,
 )
 from .get_alliances import (
     GetAlliances,
@@ -92,6 +93,7 @@ from .get_nations import (
     GetNationsNationsData,
     GetNationsNationsPaginatorInfo,
 )
+from .get_wars import GetWars, GetWarsWars, GetWarsWarsData, GetWarsWarsPaginatorInfo
 from .input_types import (
     AllianceBankrecsOrderByOrderByClause,
     AllianceBulletinsOrderByOrderByClause,
@@ -179,6 +181,10 @@ __all__ = [
     "GetNationsNations",
     "GetNationsNationsData",
     "GetNationsNationsPaginatorInfo",
+    "GetWars",
+    "GetWarsWars",
+    "GetWarsWarsData",
+    "GetWarsWarsPaginatorInfo",
     "GovernmentType",
     "GraphQLClientError",
     "GraphQLClientGraphQLError",
@@ -253,6 +259,7 @@ __all__ = [
     "WarActivity",
     "WarAttacksOrderByColumn",
     "WarAttacksOrderByOrderByClause",
+    "WarFields",
     "WarPolicy",
     "WarType",
 ]

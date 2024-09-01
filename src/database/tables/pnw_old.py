@@ -409,7 +409,7 @@ class War(Table):
     """
 
     id = Integer(primary_key=True)
-    date_started = Timestamptz(default=None)
+    date_started = Timestamptz()
     date_ended = Timestamptz(default=None, null=True)
     reason = Text()
     war_type = Text(choices=WarType)

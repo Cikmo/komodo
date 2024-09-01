@@ -117,13 +117,15 @@ class Developer(commands.Cog):
 
         timer = default_timer()
 
-        alliances, positions, nations, cities = await update_all_tables(self.bot.api_v3)
+        alliances, positions, nations, cities, wars = await update_all_tables(
+            self.bot.api_v3
+        )
 
         timer = default_timer() - timer
 
         await msg.edit(
             content=f"Completed! Synced `{alliances}` alliances, `{positions}` positions, `{nations}`"
-            f" nations and `{cities}` cities in `{timer:.2f}s`."
+            f" nations, `{cities}` cities, and `{wars}` wars in `{timer:.2f}s`."
         )
 
     @dev.command()
