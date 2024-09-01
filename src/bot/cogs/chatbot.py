@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 
 # Constants
 ASSISTANT_NAME: str = "Komodo"
-ASSISTANT_VERSION: str = "0.1.0"
+ASSISTANT_VERSION: str = "0.1.11"
 ASSISTANT_MODEL: ChatModel = "gpt-4o-mini"
 ASSISTANT_INSTRUCTIONS_FILE_PATH: str = "resources/chatbot/ai_instructions.txt"
 
