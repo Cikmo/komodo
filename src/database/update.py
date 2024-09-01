@@ -187,29 +187,7 @@ async def update_pnw_table(
         returned_ids.add(int(entity.id))
 
         if len(current_insert_batch) >= max_insert_batch_size:
-            try:
-                total_inserted += await _insert_entities(
-                    current_insert_batch, table_class
-                )
-            except ForeignKeyViolationError as e:
-                logger.error(
-                    "Failed to insert some entities in table %s: %s",
-                    table_class.__name__,
-                    e,
-                )
-                logger.info("Attempting to insert entities one by one...")
-                for entity_2 in current_insert_batch:
-                    try:
-                        total_inserted += await _insert_entities(
-                            [entity_2], table_class
-                        )
-
-                    except ForeignKeyViolationError:
-                        logger.error(
-                            "Failed to insert entity with ID %s in table %s",
-                            entity_2.id,
-                            table_class.__name__,
-                        )
+            total_inserted += await _insert_entities(current_insert_batch, table_class)
             current_insert_batch = []
 
     if current_insert_batch:
@@ -238,12 +216,37 @@ async def _insert_entities(
 
     batch_models = [table_class.from_api_v3(entity) for entity in entities]
 
-    inserted = await table_class.insert(*batch_models).on_conflict(  # type: ignore
-        table_class.id,  # type: ignore
-        "DO UPDATE",
-        table_class.all_columns(exclude=[table_class.id]),  # type: ignore
-    )
-    return len(inserted)
+    num_inserted = 0
+
+    try:
+        inserted = await table_class.insert(*batch_models).on_conflict(  # type: ignore
+            table_class.id,  # type: ignore
+            "DO UPDATE",
+            table_class.all_columns(exclude=[table_class.id]),  # type: ignore
+        )
+        num_inserted += len(inserted)
+    except ForeignKeyViolationError as e:
+        logger.error(
+            "Failed to insert some entities in table %s: %s",
+            table_class.__name__,
+            e,
+        )
+        logger.info("Attempting to insert entities one by one...")
+        for model in batch_models:
+            try:
+                await table_class.insert(model).on_conflict(  # type: ignore
+                    table_class.id,  # type: ignore
+                    "DO UPDATE",
+                    table_class.all_columns(exclude=[table_class.id]),  # type: ignore
+                )
+                num_inserted += 1
+            except ForeignKeyViolationError:
+                logger.error(
+                    "Failed to insert entity with ID %s in table %s",
+                    model.id,  # type: ignore
+                    table_class.__name__,
+                )
+    return num_inserted
 
 
 async def _get_existing_ids(
