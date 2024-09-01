@@ -44,12 +44,12 @@ async def update_all_nations(client: Client) -> tuple[int, int]:
         batch_size=10,
     )
 
-    # cities_inserted = await update_pnw_table(
-    #     City,
-    #     client.get_cities,
-    #     page_size=500,
-    #     batch_size=10,
-    # )
+    cities_inserted = await update_pnw_table(
+        City,
+        client.get_cities,
+        page_size=500,
+        batch_size=10,
+    )
 
     cities_inserted = 0
 
