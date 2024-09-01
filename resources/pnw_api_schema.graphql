@@ -355,7 +355,7 @@ type Nation {
   alliance_position: AlliancePositionEnum!
 
   # ID of the nation's position in their alliance
-  alliance_position_id: ID!
+  alliance_position_id: ID
 
   # The nation's alliance position
   alliance_position_info: AlliancePosition!

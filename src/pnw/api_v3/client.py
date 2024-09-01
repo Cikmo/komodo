@@ -62,7 +62,6 @@ class Client(AsyncBaseClient):
               alliance_obj: alliance {
                 id
               }
-              alliance_position
               alliance_position_id
               nation_name
               leader_name
@@ -282,6 +281,25 @@ class Client(AsyncBaseClient):
               accept_members
               flag
               rank
+              alliance_positions {
+                ...alliancePositionFields
+              }
+            }
+
+            fragment alliancePositionFields on AlliancePosition {
+              id
+              date
+              alliance_id
+              name
+              creator_id
+              last_editor_id
+              date_modified
+              position_level
+              leader
+              heir
+              officer
+              member
+              permissions
             }
 
             fragment paginatorFields on PaginatorInfo {

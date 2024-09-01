@@ -20,7 +20,12 @@ from piccolo.columns import (
 
 from src.database.base_table import PnwBaseTable, PydanticOverride
 from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy
-from src.pnw.api_v3 import AllianceFields, CityFields, NationFields
+from src.pnw.api_v3 import (
+    AllianceFields,
+    AlliancePositionFields,
+    CityFields,
+    NationFields,
+)
 
 
 class Alliance(PnwBaseTable[AllianceFields]):
@@ -59,6 +64,41 @@ class Alliance(PnwBaseTable[AllianceFields]):
             (cls.date_created, "date", datetime),
             (cls.accepts_members, "accept_members", bool),
             (cls.flag_url, "flag", str),
+        ]
+
+
+class AlliancePosition(PnwBaseTable[AlliancePositionFields]):
+    """
+    A table to store information about the positions in an alliance.
+    """
+
+    id = Integer(primary_key=True)
+    name = Text()
+    date_created = Timestamptz()  # API name: date
+    date_modified = Timestamptz()
+    position_level = Integer()
+    default_leader = Boolean()  # API name: leader
+    default_heir = Boolean()  # API name: heir
+    default_officer = Boolean()  # API name: officer
+    default_member = Boolean()  # API name: member
+    permission_bits = Integer()  # API name: permissions
+    creator_id = Integer()  # API name: creator_id
+    last_editor_id = Integer()  # API name: last_editor_id
+
+    alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
+
+    @classmethod
+    def pydantic_overrides(cls) -> PydanticOverride:
+        return [
+            (cls.date_created, "date", datetime),
+            (cls.default_leader, "leader", bool),
+            (cls.default_heir, "heir", bool),
+            (cls.default_officer, "officer", bool),
+            (cls.default_member, "member", bool),
+            (cls.permission_bits, "permissions", int),
+            (cls.creator_id, "creator_id", int | None),
+            (cls.last_editor_id, "last_editor_id", int | None),
+            (cls.alliance, "alliance_id", int),
         ]
 
 
@@ -105,13 +145,10 @@ class Nation(PnwBaseTable[NationFields]):
     alliance_join_date: Timestamptz | None = Timestamptz(null=True)
 
     alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
-    # alliance_position = ForeignKey(
-    #    references="AlliancePosition", on_delete=OnDelete.set_null
-    # )
-
-    # tax_bracket = ForeignKey(
-    #    references="TaxBracket", on_delete=OnDelete.set_null
-    # )
+    alliance_position = ForeignKey(
+        AlliancePosition,
+        on_delete=OnDelete.set_null,
+    )
 
     ### Reverse Foreign Keys
 
@@ -127,6 +164,9 @@ class Nation(PnwBaseTable[NationFields]):
         if model.alliance_id == "0" or model.alliance_obj is None:
             model.alliance_id = None
 
+        if model.alliance_position_id == "0":
+            model.alliance_position_id = None
+
         return model
 
     @classmethod
@@ -140,6 +180,7 @@ class Nation(PnwBaseTable[NationFields]):
             (cls.offensive_war_count, "offensive_wars_count", int),
             (cls.defensive_war_count, "defensive_wars_count", int),
             (cls.alliance, "alliance_id", int | None),
+            (cls.alliance_position, "alliance_position_id", int | None),
         ]
 
 

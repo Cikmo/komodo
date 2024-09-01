@@ -110,21 +110,19 @@ class Developer(commands.Cog):
 
         await ctx.reply(embed=embed, view=self.confirm_view)
 
-    @dev.command(name="sync_nations")
-    async def sync_nations_command(self, ctx: commands.Context[Bot], *nation_id: int):
+    @dev.command()
+    async def sync_all(self, ctx: commands.Context[Bot]):
         """Sync all nations."""
-        msg = await ctx.reply(
-            f"Syncing {'all' if not nation_id else 'specified'} nations..."
-        )
+        msg = await ctx.reply("Syncing everything...")
 
         timer = default_timer()
 
-        alliances, nations, cities = await update_all_tables(self.bot.api_v3)
+        alliances, positions, nations, cities = await update_all_tables(self.bot.api_v3)
 
         timer = default_timer() - timer
 
         await msg.edit(
-            content=f"Completed! Synced `{alliances}` alliances, `{nations}`"
+            content=f"Completed! Synced `{alliances}` alliances, `{positions}` positions, `{nations}`"
             f" nations and `{cities}` cities in `{timer:.2f}s`."
         )
 

@@ -15,14 +15,15 @@ from typing import (
     overload,
 )
 
-from src.pnw.api_v3 import GetCities, GetNations
+from src.pnw.api_v3 import GetAlliances, GetCities, GetNations
+from src.pnw.api_v3.get_alliances import GetAlliancesAlliancesData
 from src.pnw.api_v3.get_cities import GetCitiesCitiesData
 from src.pnw.api_v3.get_nations import GetNationsNationsData
 
 logger = getLogger(__name__)
 
 
-T = TypeVar("T", bound=GetNations | GetCities)
+T = TypeVar("T", bound=GetNations | GetCities | GetAlliances)
 
 
 class Paginator(Generic[T]):
@@ -78,6 +79,11 @@ class Paginator(Generic[T]):
     async def __aiter__(
         self: Paginator[GetCities],
     ) -> AsyncGenerator[GetCitiesCitiesData, None]: ...
+
+    @overload
+    async def __aiter__(
+        self: Paginator[GetAlliances],
+    ) -> AsyncGenerator[GetAlliancesAlliancesData, None]: ...
 
     async def __aiter__(
         self,

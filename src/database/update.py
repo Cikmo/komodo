@@ -10,8 +10,18 @@ from typing import Any, Awaitable, Callable, Literal, overload
 
 from piccolo.table import Table
 
-from src.database.tables.pnw import Alliance, City, Nation, PnwBaseTable
-from src.pnw.api_v3 import Client
+from src.database.tables.pnw import (
+    Alliance,
+    AlliancePosition,
+    City,
+    Nation,
+    PnwBaseTable,
+)
+from src.pnw.api_v3 import (
+    AllianceFieldsAlliancePositions,
+    Client,
+    GetAlliancesAlliancesData,
+)
 from src.pnw.paginator import Paginator
 
 logger = getLogger(__name__)
@@ -42,28 +52,57 @@ async def update_all_nations(client: Client) -> tuple[int, int]:
     return nations_inserted, cities_inserted
 
 
-async def update_alliances(client: Client) -> int:
+async def update_alliances(client: Client) -> tuple[int, int]:
     """
-    Updates the alliances table with data fetched from the Politics and War API.
+    Updates allince and alliance position tables with data fetched from the Politics and War API.
 
     Returns:
-        The number of alliances inserted or updated.
+        A tuple containing the number of alliances and alliance positions inserted or updated.
     """
-    return await update_pnw_table(
-        Alliance, client.get_alliances, page_size=500, batch_size=2
-    )
+
+    # We needed to create a special case for alliances because the alliance_positions
+    # are nested within the alliances data. This is not the case for other entities.
+    # I might need to create some kind of generic solution for this in the future.
+
+    paginator = Paginator(client.get_alliances, page_size=500, batch_size=2)
+
+    all_alliances: list[GetAlliancesAlliancesData] = []
+    all_positions: list[AllianceFieldsAlliancePositions] = []
+
+    async for alliance in paginator:
+        all_alliances.append(alliance)
+        for position in alliance.alliance_positions:
+            all_positions.append(position)
+
+    alliances_inserted: int = 0
+    positions_inserted: int = 0
+
+    alliance_max_insert_batch_size = _get_max_batch_size(Alliance)
+    position_max_insert_batch_size = _get_max_batch_size(AlliancePosition)
+
+    for i in range(0, len(all_alliances), alliance_max_insert_batch_size):
+        alliances_inserted += await _insert_entities(
+            all_alliances[i : i + alliance_max_insert_batch_size], Alliance
+        )
+
+    for i in range(0, len(all_positions), position_max_insert_batch_size):
+        positions_inserted += await _insert_entities(
+            all_positions[i : i + position_max_insert_batch_size], AlliancePosition
+        )
+
+    return alliances_inserted, positions_inserted
 
 
-async def update_all_tables(client: Client) -> tuple[int, int, int]:
+async def update_all_tables(client: Client) -> tuple[int, int, int, int]:
     """
     Updates all tables with data fetched from the Politics and War API.
 
     Returns:
         A tuple containing the number of alliances, nations and cities inserted or updated.
     """
-    alliances_inserted = await update_alliances(client)
+    alliances_inserted, positions_inserted = await update_alliances(client)
     nations_inserted, cities_inserted = await update_all_nations(client)
-    return alliances_inserted, nations_inserted, cities_inserted
+    return alliances_inserted, positions_inserted, nations_inserted, cities_inserted
 
 
 @overload

@@ -67,6 +67,8 @@ from .exceptions import (
 )
 from .fragments import (
     AllianceFields,
+    AllianceFieldsAlliancePositions,
+    AlliancePositionFields,
     CityFields,
     NationFields,
     NationFieldsAllianceObj,
@@ -139,9 +141,11 @@ __all__ = [
     "AllianceBulletinsOrderByColumn",
     "AllianceBulletinsOrderByOrderByClause",
     "AllianceFields",
+    "AllianceFieldsAlliancePositions",
     "AllianceNationsOrderByColumn",
     "AllianceNationsOrderByOrderByClause",
     "AlliancePositionEnum",
+    "AlliancePositionFields",
     "AllianceTaxBracketsOrderByColumn",
     "AllianceTaxBracketsOrderByOrderByClause",
     "AllianceTaxrecsOrderByColumn",

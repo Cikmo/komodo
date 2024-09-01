@@ -2,19 +2,34 @@
 # Source: resources/queries.graphql
 
 from datetime import date
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import AwareDatetime, Field
 
 from .base_model import BaseModel
 from .enums import (
-    AlliancePositionEnum,
     DomesticPolicy,
     EconomicPolicy,
     GovernmentType,
     SocialPolicy,
     WarPolicy,
 )
+
+
+class AlliancePositionFields(BaseModel):
+    id: str
+    date: AwareDatetime
+    alliance_id: str
+    name: str
+    creator_id: str
+    last_editor_id: str
+    date_modified: AwareDatetime
+    position_level: int
+    leader: bool
+    heir: bool
+    officer: bool
+    member: bool
+    permissions: int
 
 
 class AllianceFields(BaseModel):
@@ -28,6 +43,11 @@ class AllianceFields(BaseModel):
     accept_members: bool
     flag: str
     rank: int
+    alliance_positions: List["AllianceFieldsAlliancePositions"]
+
+
+class AllianceFieldsAlliancePositions(AlliancePositionFields):
+    pass
 
 
 class CityFields(BaseModel):
@@ -72,8 +92,7 @@ class NationFields(BaseModel):
     id: str
     alliance_id: Optional[str]
     alliance_obj: Optional["NationFieldsAllianceObj"]
-    alliance_position: AlliancePositionEnum
-    alliance_position_id: str
+    alliance_position_id: Optional[str]
     nation_name: str
     leader_name: str
     continent: str
@@ -152,6 +171,7 @@ class PaginatorFields(BaseModel):
     has_more_pages: bool = Field(alias="hasMorePages")
 
 
+AlliancePositionFields.model_rebuild()
 AllianceFields.model_rebuild()
 CityFields.model_rebuild()
 NationFields.model_rebuild()
