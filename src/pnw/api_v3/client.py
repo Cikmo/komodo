@@ -3,6 +3,8 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+from pydantic import AwareDatetime
+
 from .async_base_client import AsyncBaseClient
 from .base_model import UNSET, UnsetType
 from .get_alliances import GetAlliances
@@ -10,6 +12,7 @@ from .get_cities import GetCities
 from .get_nations import GetNations
 from .get_wars import GetWars
 from .input_types import (
+    QueryAlliancesOrderByOrderByClause,
     QueryCitiesOrderByOrderByClause,
     QueryNationsOrderByOrderByClause,
     QueryWarsOrderByOrderByClause,
@@ -38,7 +41,7 @@ class Client(AsyncBaseClient):
     ) -> GetNations:
         query = gql(
             """
-            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $vacation_mode: Boolean, $order_by: [QueryNationsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+            query get_nations($nation_id: [Int!], $nation_name: [String!], $discord_id: [String!], $discord_name: [String!], $vacation_mode: Boolean, $order_by: [QueryNationsOrderByOrderByClause!] = {column: DATE, order: ASC}, $page_size: Int = 50, $page: Int) {
               nations(
                 id: $nation_id
                 nation_name: $nation_name
@@ -169,7 +172,7 @@ class Client(AsyncBaseClient):
     ) -> GetCities:
         query = gql(
             """
-            query get_cities($city_id: [Int!], $nation_id: [Int!], $order_by: [QueryCitiesOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+            query get_cities($city_id: [Int!], $nation_id: [Int!], $order_by: [QueryCitiesOrderByOrderByClause!] = {column: ID, order: ASC}, $page_size: Int = 50, $page: Int) {
               cities(
                 id: $city_id
                 nation_id: $nation_id
@@ -248,18 +251,21 @@ class Client(AsyncBaseClient):
         alliance_id: Union[Optional[List[int]], UnsetType] = UNSET,
         alliance_name: Union[Optional[List[str]], UnsetType] = UNSET,
         color: Union[Optional[List[str]], UnsetType] = UNSET,
+        order_by: Union[
+            Optional[List[QueryAlliancesOrderByOrderByClause]], UnsetType
+        ] = UNSET,
         page_size: Union[Optional[int], UnsetType] = UNSET,
         page: Union[Optional[int], UnsetType] = UNSET,
         **kwargs: Any
     ) -> GetAlliances:
         query = gql(
             """
-            query get_alliances($alliance_id: [Int!], $alliance_name: [String!], $color: [String!], $page_size: Int = 10, $page: Int) {
+            query get_alliances($alliance_id: [Int!], $alliance_name: [String!], $color: [String!], $order_by: [QueryAlliancesOrderByOrderByClause!] = {column: DATE, order: ASC}, $page_size: Int = 10, $page: Int) {
               alliances(
                 id: $alliance_id
                 name: $alliance_name
                 color: $color
-                orderBy: {column: SCORE, order: ASC}
+                orderBy: $order_by
                 first: $page_size
                 page: $page
               ) {
@@ -314,6 +320,7 @@ class Client(AsyncBaseClient):
             "alliance_id": alliance_id,
             "alliance_name": alliance_name,
             "color": color,
+            "order_by": order_by,
             "page_size": page_size,
             "page": page,
         }
@@ -327,6 +334,7 @@ class Client(AsyncBaseClient):
         self,
         war_id: Union[Optional[List[int]], UnsetType] = UNSET,
         active: Union[Optional[bool], UnsetType] = UNSET,
+        after: Union[Optional[AwareDatetime], UnsetType] = UNSET,
         order_by: Union[
             Optional[List[QueryWarsOrderByOrderByClause]], UnsetType
         ] = UNSET,
@@ -336,10 +344,11 @@ class Client(AsyncBaseClient):
     ) -> GetWars:
         query = gql(
             """
-            query get_wars($war_id: [Int!], $active: Boolean = false, $order_by: [QueryWarsOrderByOrderByClause!], $page_size: Int = 50, $page: Int) {
+            query get_wars($war_id: [Int!], $active: Boolean = false, $after: DateTime, $order_by: [QueryWarsOrderByOrderByClause!] = {column: DATE, order: ASC}, $page_size: Int = 50, $page: Int) {
               wars(
                 id: $war_id
                 active: $active
+                after: $after
                 orderBy: $order_by
                 first: $page_size
                 page: $page
@@ -411,6 +420,7 @@ class Client(AsyncBaseClient):
         variables: Dict[str, object] = {
             "war_id": war_id,
             "active": active,
+            "after": after,
             "order_by": order_by,
             "page_size": page_size,
             "page": page,

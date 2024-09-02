@@ -119,7 +119,7 @@ class Nation(PnwBaseTable[NationFields]):
     num_cities = Integer()
     color = Text(choices=Color)
     score = Real()
-    update_timezone: Real | None = Real(null=True)  # API name: update_tz
+    update_timezone = Real(null=True)  # API name: update_tz
     population = Integer()
     flag_url = Text()  # API name: flag
     vacation_mode_turns = Integer()
@@ -143,7 +143,7 @@ class Nation(PnwBaseTable[NationFields]):
     wars_lost = Integer()
     offensive_war_count = Integer()  # API name: offensive_wars_count
     defensive_war_count = Integer()  # API name: defensive_wars_count
-    alliance_join_date: Timestamptz | None = Timestamptz(null=True)
+    alliance_join_date = Timestamptz(null=True)
 
     alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
     alliance_position = ForeignKey(
@@ -196,7 +196,7 @@ class City(PnwBaseTable[CityFields]):
     infrastructure = Real()
     land = Real()
     powered = Boolean()
-    last_nuke_date: Timestamptz | None = Timestamptz(
+    last_nuke_date = Timestamptz(
         null=True,
     )  # API name: nuke_date
 

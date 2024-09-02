@@ -4,6 +4,7 @@ This module contains functions to update database rows with data fetched from th
 
 from __future__ import annotations
 
+from datetime import timedelta
 from functools import lru_cache
 from logging import getLogger
 from typing import Any, Awaitable, Callable, Literal, overload
@@ -51,8 +52,6 @@ async def update_all_nations(client: Client) -> tuple[int, int]:
         batch_size=10,
     )
 
-    cities_inserted = 0
-
     return nations_inserted, cities_inserted
 
 
@@ -63,11 +62,29 @@ async def update_all_wars(client: Client) -> int:
     Returns:
         The number of wars inserted or updated.
     """
+
+    # Optimization: Fetch only wars that are currently ongoing, or ended since the last update.
+    # This is done by fetching the start date of the oldest ongoing war
+    # and querying the API for wars that started after that date.
+    old_war = (
+        await War.objects()
+        .where(War.end_date.is_null())
+        .order_by(War.id, ascending=True)
+        .first()
+    )
+
+    from_date = old_war.start_date if old_war else None
+    if from_date:
+        from_date -= timedelta(minutes=1)
+
     return await update_pnw_table(
         War,
         client.get_wars,
         page_size=500,
         batch_size=10,
+        query_args=(
+            {"after": from_date.strftime("%Y-%m-%d %H:%M:%S")} if from_date else None
+        ),
     )
 
 
@@ -202,21 +219,23 @@ async def update_pnw_table(
     max_insert_batch_size = _get_max_batch_size(table_class)
 
     total_inserted = 0
-    current_insert_batch: list[Any] = []
+    # current_insert_batch: list[Any] = []
     returned_ids: set[int] = set()
 
     existing_ids = await _get_existing_ids(table_class, query_args)
 
-    async for entity in paginator:
-        current_insert_batch.append(entity)
-        returned_ids.add(int(entity.id))
+    async for entities in paginator.batch(max_insert_batch_size):
+        # current_insert_batch.append(entity)
+        returned_ids |= {int(entity.id) for entity in entities}
 
-        if len(current_insert_batch) >= max_insert_batch_size:
-            total_inserted += await _insert_entities(current_insert_batch, table_class)
-            current_insert_batch = []
+        total_inserted += await _insert_entities(entities, table_class)
 
-    if current_insert_batch:
-        total_inserted += await _insert_entities(current_insert_batch, table_class)
+    #     if len(current_insert_batch) >= max_insert_batch_size:
+    #         total_inserted += await _insert_entities(current_insert_batch, table_class)
+    #         current_insert_batch = []
+
+    # if current_insert_batch:
+    #     total_inserted += await _insert_entities(current_insert_batch, table_class)
 
     if not query_args:
         await _delete_stale_ids(existing_ids, returned_ids, table_class)

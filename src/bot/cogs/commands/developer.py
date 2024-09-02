@@ -14,7 +14,7 @@ from pydantic import BaseModel
 import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
-from src.database.tables.pnw import City, Nation
+from src.database.tables.pnw import City, Nation, War
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
@@ -109,6 +109,30 @@ class Developer(commands.Cog):
         embed = WhoEmbed(state=state)
 
         await ctx.reply(embed=embed, view=self.confirm_view)
+
+    @dev.command()
+    async def test(self, ctx: commands.Context[Bot]):
+        """Test command."""
+        norlandia = await Nation.objects().where(Nation.name == "Raftel").first()
+        if not norlandia:
+            await ctx.reply("Norlandia not found.")
+            return
+
+        active_wars = await War.objects().where(
+            (
+                (War.attacker_id.join_on(Nation.id).alliance == norlandia.alliance)
+                | (War.defender_id.join_on(Nation.id).alliance == norlandia.alliance)
+            )
+            & (War.end_date.is_null())
+        )
+
+        if not active_wars:
+            await ctx.reply("Wars not found.")
+            return
+
+        await ctx.reply(
+            f"Found {len(active_wars)} active wars in {norlandia.alliance}."
+        )
 
     @dev.command()
     async def sync_all(self, ctx: commands.Context[Bot]):

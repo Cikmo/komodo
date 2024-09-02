@@ -6,7 +6,7 @@ query get_nations(
   $discord_id: [String!]
   $discord_name: [String!]
   $vacation_mode: Boolean
-  $order_by: [QueryNationsOrderByOrderByClause!]
+  $order_by: [QueryNationsOrderByOrderByClause!] = { column: DATE, order: ASC }
   $page_size: Int = 50
   $page: Int
 ) {
@@ -32,7 +32,7 @@ query get_nations(
 query get_cities(
   $city_id: [Int!]
   $nation_id: [Int!]
-  $order_by: [QueryCitiesOrderByOrderByClause!]
+  $order_by: [QueryCitiesOrderByOrderByClause!] = { column: ID, order: ASC }
   $page_size: Int = 50
   $page: Int
 ) {
@@ -56,7 +56,10 @@ query get_alliances(
   $alliance_id: [Int!]
   $alliance_name: [String!]
   $color: [String!]
-  #$order_by: [QueryAlliancesOrderByOrderByClause!]
+  $order_by: [QueryAlliancesOrderByOrderByClause!] = {
+    column: DATE
+    order: ASC
+  }
   $page_size: Int = 10
   $page: Int
 ) {
@@ -64,7 +67,7 @@ query get_alliances(
     id: $alliance_id
     name: $alliance_name
     color: $color
-    orderBy: { column: SCORE, order: ASC } # we need to do this otherwise it doesn't return all alliances
+    orderBy: $order_by
     first: $page_size
     page: $page
   ) {
@@ -80,13 +83,16 @@ query get_alliances(
 query get_wars(
   $war_id: [Int!]
   $active: Boolean = false
+  $after: DateTime
+  $order_by: [QueryWarsOrderByOrderByClause!] = { column: DATE, order: ASC }
   $page_size: Int = 50
   $page: Int
 ) {
   wars(
     id: $war_id
     active: $active
-    orderBy: { column: DATE, order: DESC }
+    after: $after
+    orderBy: $order_by
     first: $page_size
     page: $page
   ) {

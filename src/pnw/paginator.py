@@ -97,6 +97,7 @@ class Paginator(Generic[T]):
 
         while True:
             results: list[T] = await self._fetch_batch()
+
             for result in results:
                 first_attr_name: str = next(  # pylint: disable=stop-iteration-return
                     iter(result.__dict__)
@@ -112,6 +113,48 @@ class Paginator(Generic[T]):
                 if not first_attr_value.paginator_info.has_more_pages:
                     return
 
+    async def batch(self, size: int = 50) -> AsyncGenerator[list[Any], None]:
+        """A generator that yields batches of items.
+
+        Args:
+            size: The number of items per batch.
+
+        Yields:
+            A list of items with the specified size.
+        """
+
+        to_yield: list[Any] = []
+        should_return: bool = False
+
+        while True:
+            results: list[T] = await self._fetch_batch()
+
+            for result in results:
+                first_attr_name: str = next(  # pylint: disable=stop-iteration-return
+                    iter(result.__dict__)
+                )
+                first_attr_value: FirstItem = getattr(result, first_attr_name)
+
+                # Add as much data as possible to to_yield without exceeding the target size,
+                # then update data to remove the portion that was just added.
+                data = first_attr_value.data
+                while len(data) > 0:
+                    remaining_space = size - len(to_yield)
+                    to_yield.extend(data[:remaining_space])
+                    data = data[remaining_space:]
+
+                    if len(to_yield) == size:
+                        yield to_yield
+                        to_yield = []
+
+                if not first_attr_value.paginator_info.has_more_pages:
+                    should_return = True
+
+            if should_return:
+                if to_yield:
+                    yield to_yield
+                return
+
 
 class PaginatorInfo(Protocol):
     """A protocol for objects with a has_more_pages attribute."""
@@ -122,5 +165,9 @@ class PaginatorInfo(Protocol):
 class FirstItem(Protocol):
     """A protocol for objects with a data attribute."""
 
-    data: GetCitiesCitiesData | GetNationsNationsData
+    data: (
+        list[GetCitiesCitiesData]
+        | list[GetNationsNationsData]
+        | list[GetAlliancesAlliancesData]
+    )
     paginator_info: PaginatorInfo
