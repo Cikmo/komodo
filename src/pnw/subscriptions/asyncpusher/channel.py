@@ -7,7 +7,7 @@ from typing import Any, Awaitable, Callable
 
 from .connection import Connection
 from .models import PusherEvent
-from .types import EventData
+from .types import EventCallbacks, EventData
 
 
 class Channel:
@@ -30,7 +30,7 @@ class Channel:
         self._connection = connection
         self._log = log
 
-        self._event_callbacks = defaultdict(dict)
+        self._event_callbacks: EventCallbacks = defaultdict(dict)
         self.state = self.State.UNSUBSCRIBED
 
         self.bind("pusher_internal:subscription_succeeded", self._handle_success)

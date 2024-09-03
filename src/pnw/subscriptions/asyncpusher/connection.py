@@ -12,7 +12,7 @@ import aiohttp
 from pydantic import ValidationError
 
 from .models import ConnectionEstablishedEvent, PusherEvent
-from .types import EventData
+from .types import EventCallbacks, EventData
 
 MAX_WAIT_SECONDS = 120
 
@@ -45,7 +45,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._log = log
         self._websocket_params = kwargs
 
-        self._event_callbacks = defaultdict(dict)
+        self._event_callbacks: EventCallbacks = defaultdict(dict)
 
         self._connection_attempts = 0
         # stop signal to break infinite loop in _run_forever
