@@ -7,7 +7,6 @@ import aiohttp
 
 from src.config import get_settings
 from src.pnw.subscriptions.asyncpusher import Pusher
-from src.pnw.subscriptions.asyncpusher.models import AuthenticateChannelData
 from src.pnw.subscriptions.asyncpusher.types import EventData
 
 logger = logging.getLogger(__name__)
@@ -17,16 +16,6 @@ async def handle_nation(data: EventData):
     """Handle event."""
 
     logger.info(data)
-
-
-async def channel_authenticator(data: AuthenticateChannelData):
-    """Authenticate channel."""
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "https://api.politicsandwar.com/subscriptions/v1/auth",
-            data=data.model_dump(),
-        ) as response:
-            return await response.json()
 
 
 async def get_channel(name: str, event: str) -> str | None:
@@ -49,7 +38,7 @@ async def subscribe():
     pusher = Pusher(
         "a22734a47847a64386c8",
         custom_host="socket.politicsandwar.com",
-        channel_authenticator=channel_authenticator,
+        auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
         loop=loop,
     )
 

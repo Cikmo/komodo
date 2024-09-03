@@ -33,10 +33,3 @@ class ConnectionEstablishedEvent(BaseModel):
 
     socket_id: str
     activity_timeout: int
-
-
-class AuthenticateChannelData(BaseModel):
-    """Authenticate channel data"""
-
-    socket_id: str
-    channel_name: str

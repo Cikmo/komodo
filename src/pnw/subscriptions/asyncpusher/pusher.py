@@ -2,11 +2,13 @@
 
 import asyncio
 import logging
-from typing import Any, Awaitable, Callable
+from typing import Any
+
+import aiohttp
 
 from .channel import Channel
 from .connection import Connection
-from .models import AuthenticateChannelData, PusherEvent
+from .models import PusherEvent
 from .types import EventData
 
 VERSION = "0.2.0"
@@ -25,9 +27,7 @@ class Pusher:
         custom_host: str | None = None,
         custom_port: int | None = None,
         custom_client: str | None = None,
-        channel_authenticator: (
-            Callable[[AuthenticateChannelData], Awaitable[dict[str, Any]]] | None
-        ) = None,
+        auth_endpoint: str | None = None,
         auto_sub: bool = False,
         log: logging.Logger | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
@@ -35,7 +35,7 @@ class Pusher:
     ):
         self._key = key
 
-        self._channel_authenticator = channel_authenticator
+        self._auth_endpoint = auth_endpoint
 
         self._log = log if log is not None else logging.getLogger(__name__)
         self._loop = loop if loop is not None else asyncio.get_running_loop()
@@ -124,17 +124,25 @@ class Pusher:
                 await self._subscribe(channel)
 
     async def _authenticate_channel(self, channel: Channel):
-        if self._channel_authenticator is None:
-            raise ValueError("channel_authenticator has to be provided")
+        if self._auth_endpoint is None:
+            raise ValueError(
+                "Auth endpoint must be provided for private or presence channels"
+            )
 
         if self.connection.socket_id is None:
             raise ValueError("Socket ID is not set")
 
-        data = AuthenticateChannelData(
-            socket_id=self.connection.socket_id,
-            channel_name=channel._name,  # type: ignore # pylint: disable=protected-access
-        )
-        return await self._channel_authenticator(data)
+        data = {
+            "socket_id": self.connection.socket_id,
+            "channel_name": channel._name,  # type: ignore # pylint: disable=protected-access
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                self._auth_endpoint,
+                data=data,
+            ) as response:
+                return await response.json()
 
     def _build_url(
         self,
