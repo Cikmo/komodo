@@ -115,15 +115,15 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                     if isinstance(msg.data, int):
                         code = msg.data
                         # 4000-4099: The connection SHOULD NOT be re-established unchanged.
-                        if code >= 4000 and code < 4100:
+                        if 4000 <= code < 4100:
                             self._stop = True
                         # 4100-4199: The connection SHOULD be re-established after backing off.
                         # The back-off time SHOULD be at least 1 second in duration and MAY be
                         # exponential in nature on consecutive failures.
-                        elif code >= 4100 and code < 4200:
+                        elif 4100 <= code < 4200:
                             self._connection_attempts += 1
                         # 4200-4299: The connection SHOULD be re-established immediately.
-                        elif code >= 4200 and code < 4300:
+                        elif 4200 <= code < 4300:
                             self._connection_attempts = 0
                     else:
                         # Unknown closing, it sometimes happens. Try to reconnect anyway
