@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Any
 
 import aiohttp
 
@@ -12,10 +13,16 @@ from src.pnw.subscriptions.asyncpusher.types import EventData
 logger = logging.getLogger(__name__)
 
 
-async def handle_nation(data: EventData):
+async def handle_nation(data: dict[str, Any]):
+    """Handle event."""
+    logger.info("Handling nation with id: %s", data["id"])
+
+
+async def handle_bulk_nation(data: list[dict[str, Any]]):
     """Handle event."""
 
-    logger.info(data)
+    for nation in data:
+        await handle_nation(nation)
 
 
 async def get_channel(name: str, event: str) -> str | None:
@@ -46,9 +53,16 @@ async def subscribe():
         return
 
     await pusher.connect()
+
     channel = await pusher.subscribe(channel_name)
-    channel.bind("BULK_NATION_UPDATE", handle_nation)
-    await asyncio.sleep(30)
+
+    channel.bind("BULK_NATION_UPDATE", handle_bulk_nation)
+    channel.bind("NATION_UPDATE", handle_nation)
+
+    await asyncio.sleep(120)
+
     await pusher.unsubscribe(channel_name)
+
     await asyncio.sleep(1)
+
     await pusher.disconnect()
