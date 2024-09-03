@@ -18,6 +18,7 @@ from src.database.tables.pnw import City, Nation, War
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
+from src.pnw.subscriptions.test import subscribe
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -113,26 +114,8 @@ class Developer(commands.Cog):
     @dev.command()
     async def test(self, ctx: commands.Context[Bot]):
         """Test command."""
-        norlandia = await Nation.objects().where(Nation.name == "Raftel").first()
-        if not norlandia:
-            await ctx.reply("Norlandia not found.")
-            return
-
-        active_wars = await War.objects().where(
-            (
-                (War.attacker_id.join_on(Nation.id).alliance == norlandia.alliance)
-                | (War.defender_id.join_on(Nation.id).alliance == norlandia.alliance)
-            )
-            & (War.end_date.is_null())
-        )
-
-        if not active_wars:
-            await ctx.reply("Wars not found.")
-            return
-
-        await ctx.reply(
-            f"Found {len(active_wars)} active wars in {norlandia.alliance}."
-        )
+        await subscribe()
+        await ctx.reply("Subscribed to events.")
 
     @dev.command()
     async def sync_all(self, ctx: commands.Context[Bot]):
