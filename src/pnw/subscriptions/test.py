@@ -33,13 +33,10 @@ async def get_channel(name: str, event: str) -> str | None:
 
 async def subscribe():
     """Subscribe to nation."""
-    loop = asyncio.get_running_loop()
-
     pusher = Pusher(
         "a22734a47847a64386c8",
         custom_host="socket.politicsandwar.com",
         auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
-        loop=loop,
     )
 
     channel_name = await get_channel("nation", "update")
