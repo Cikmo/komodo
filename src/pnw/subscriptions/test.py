@@ -8,7 +8,6 @@ import aiohttp
 
 from src.config import get_settings
 from src.pnw.subscriptions.asyncpusher import Pusher
-from src.pnw.subscriptions.asyncpusher.types import EventData
 
 logger = logging.getLogger(__name__)
 
