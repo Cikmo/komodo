@@ -1,11 +1,13 @@
+"""Testing subscriptions."""
+
 import asyncio
 import logging
-from typing import Any
 
 import aiohttp
 
 from src.config import get_settings
 from src.pnw.subscriptions.asyncpusher import Pusher
+from src.pnw.subscriptions.asyncpusher.models import AuthenticateChannelData
 from src.pnw.subscriptions.asyncpusher.types import EventData
 
 logger = logging.getLogger(__name__)
@@ -17,12 +19,12 @@ async def handle_nation(data: EventData):
     logger.info(data)
 
 
-async def channel_authenticator(data: Any):
+async def channel_authenticator(data: AuthenticateChannelData):
     """Authenticate channel."""
-    # https://api.politicsandwar.com/subscriptions/v1/auth
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            "https://api.politicsandwar.com/subscriptions/v1/auth", data=data
+            "https://api.politicsandwar.com/subscriptions/v1/auth",
+            data=data.model_dump(),
         ) as response:
             return await response.json()
 

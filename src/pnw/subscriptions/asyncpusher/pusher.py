@@ -6,7 +6,7 @@ from typing import Any, Awaitable, Callable
 
 from .channel import Channel
 from .connection import Connection
-from .models import PusherEvent
+from .models import AuthenticateChannelData, PusherEvent
 from .types import EventData
 
 VERSION = "0.2.0"
@@ -26,10 +26,7 @@ class Pusher:
         custom_port: int | None = None,
         custom_client: str | None = None,
         channel_authenticator: (
-            Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None
-        ) = None,
-        user_authenticator: (
-            Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None
+            Callable[[AuthenticateChannelData], Awaitable[dict[str, Any]]] | None
         ) = None,
         auto_sub: bool = False,
         log: logging.Logger | None = None,
@@ -39,7 +36,6 @@ class Pusher:
         self._key = key
 
         self._channel_authenticator = channel_authenticator
-        self._user_authenticator = user_authenticator
 
         self._log = log if log is not None else logging.getLogger(__name__)
         self._loop = loop if loop is not None else asyncio.get_running_loop()
@@ -105,7 +101,6 @@ class Pusher:
             data["auth"] = auth["auth"]
             if channel.is_presence():
                 data["channel_data"] = auth["channel_data"]
-        # event = {"event": "pusher:subscribe", "data": data}
         event = PusherEvent(event="pusher:subscribe", data=data)
         await self.connection.send_event(event)
 
@@ -132,10 +127,13 @@ class Pusher:
         if self._channel_authenticator is None:
             raise ValueError("channel_authenticator has to be provided")
 
-        data = {
-            "socket_id": self.connection.socket_id,
-            "channel_name": channel._name,  # type: ignore # pylint: disable=protected-access
-        }
+        if self.connection.socket_id is None:
+            raise ValueError("Socket ID is not set")
+
+        data = AuthenticateChannelData(
+            socket_id=self.connection.socket_id,
+            channel_name=channel._name,  # type: ignore # pylint: disable=protected-access
+        )
         return await self._channel_authenticator(data)
 
     def _build_url(
