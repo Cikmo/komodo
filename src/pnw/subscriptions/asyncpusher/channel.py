@@ -5,7 +5,9 @@ from collections import defaultdict
 from enum import Enum
 from typing import Any, Awaitable, Callable
 
-from .connection import Connection, EventData, PusherEvent
+from .connection import Connection
+from .models import PusherEvent
+from .types import EventData
 
 
 class Channel:

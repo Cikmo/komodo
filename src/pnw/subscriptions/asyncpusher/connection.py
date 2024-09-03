@@ -9,40 +9,12 @@ from random import random
 from typing import Any, Awaitable, Callable
 
 import aiohttp
-import orjson
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import ValidationError
+
+from .models import ConnectionEstablishedEvent, PusherEvent
+from .types import EventData
 
 MAX_WAIT_SECONDS = 120
-
-
-EventData = dict[str, Any] | list[dict[str, Any]] | None
-
-
-class PusherEvent(BaseModel):
-    """Pusher event"""
-
-    name: str = Field(alias="event")
-    data: EventData = None
-    channel: str | None = None
-
-    @field_validator("data", mode="before")
-    @classmethod
-    def load_json_data(cls, v: str | EventData) -> Any:
-        """Load json data from string."""
-        if not isinstance(v, str):
-            return v
-
-        try:
-            return orjson.loads(v)
-        except orjson.JSONDecodeError:
-            return v
-
-
-class ConnectionEstablishedEvent(BaseModel):
-    """Connection established event"""
-
-    socket_id: str
-    activity_timeout: int
 
 
 class Connection:  # pylint: disable=too-many-instance-attributes

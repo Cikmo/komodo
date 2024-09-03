@@ -5,7 +5,9 @@ import logging
 from typing import Any, Awaitable, Callable
 
 from .channel import Channel
-from .connection import Connection, EventData, PusherEvent
+from .connection import Connection
+from .models import PusherEvent
+from .types import EventData
 
 VERSION = "0.2.0"
 PROTOCOL = 7

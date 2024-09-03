@@ -5,16 +5,20 @@ from typing import Any
 import aiohttp
 
 from src.config import get_settings
-from src.pnw.subscriptions.asyncpusher.pusher import Pusher
+from src.pnw.subscriptions.asyncpusher import Pusher
+from src.pnw.subscriptions.asyncpusher.types import EventData
 
 logger = logging.getLogger(__name__)
 
 
-async def handle_event(data: Any):
-    logger.info(f"Received event...")
+async def handle_nation(data: EventData):
+    """Handle event."""
+
+    logger.info(data)
 
 
 async def channel_authenticator(data: Any):
+    """Authenticate channel."""
     # https://api.politicsandwar.com/subscriptions/v1/auth
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -24,7 +28,11 @@ async def channel_authenticator(data: Any):
 
 
 async def get_channel(name: str, event: str) -> str | None:
-    url = f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{name}/{event}?api_key={get_settings().pnw.api_key}"
+    """Get channel name."""
+    url = (
+        f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{name}/{event}"
+        f"?api_key={get_settings().pnw.api_key}"
+    )
 
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -33,6 +41,7 @@ async def get_channel(name: str, event: str) -> str | None:
 
 
 async def subscribe():
+    """Subscribe to nation."""
     loop = asyncio.get_running_loop()
 
     pusher = Pusher(
@@ -50,7 +59,7 @@ async def subscribe():
 
     await pusher.connect()
     channel = await pusher.subscribe(channel_name)
-    channel.bind("BULK_NATION_UPDATE", handle_event)
+    channel.bind("BULK_NATION_UPDATE", handle_nation)
     await asyncio.sleep(30)
     await pusher.unsubscribe(channel_name)
     await asyncio.sleep(1)
