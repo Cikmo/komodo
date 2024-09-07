@@ -7,18 +7,17 @@ from __future__ import annotations
 import asyncio
 import logging
 from timeit import default_timer
-from typing import TYPE_CHECKING, Any, Awaitable, Self
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, Self
 
 from pydantic import BaseModel
 
 import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
-from src.database.tables.pnw import City, Nation, War
+from src.database.tables.pnw import City, Nation
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
-from src.pnw.subscriptions.test import subscribe
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -112,10 +111,18 @@ class Developer(commands.Cog):
         await ctx.reply(embed=embed, view=self.confirm_view)
 
     @dev.command()
-    async def test(self, ctx: commands.Context[Bot]):
+    async def subscribe(self, ctx: commands.Context[Bot], model: str, event: str):
         """Test command."""
-        await subscribe()
+        callback: Callable[[str], Coroutine[Any, Any, Any]] = (
+            lambda data: self._callback(model, event, data)
+        )
+
+        await self.bot.pnw.subscriptions.subscribe(model, event, [callback])
+
         await ctx.reply("Subscribed to events.")
+
+    async def _callback(self, model: str, event: str, data: Any):
+        logger.info("Received event %s %s with id %s", model, event, data["id"])
 
     @dev.command()
     async def sync_all(self, ctx: commands.Context[Bot]):
@@ -125,7 +132,7 @@ class Developer(commands.Cog):
         timer = default_timer()
 
         alliances, positions, nations, cities, wars = await update_all_tables(
-            self.bot.api_v3
+            self.bot.pnw.v3
         )
 
         timer = default_timer() - timer
@@ -153,7 +160,7 @@ class Developer(commands.Cog):
     @dev.command()
     async def cities(self, ctx: commands.Context[Bot]):
         """Get all cities from norlandia and add to database."""
-        cities_api = (await self.bot.api_v3.get_cities(nation_id=[239259])).cities.data
+        cities_api = (await self.bot.pnw.v3.get_cities(nation_id=[239259])).cities.data
 
         cities = City.from_api_v3(cities_api)
 
@@ -207,7 +214,7 @@ class Developer(commands.Cog):
         """Withdraw money from the bank."""
 
         nation_data = (
-            await self.bot.api_v3.get_nations(discord_id=[str(user.id)])
+            await self.bot.pnw.v3.get_nations(discord_id=[str(user.id)])
         ).nations.data
 
         nation = nation_data[0] if nation_data else None
@@ -237,7 +244,7 @@ class Developer(commands.Cog):
 
         resource_amount[resource.lower()] = amount
 
-        await self.bot.api_v3.mutation_bank_withdraw(
+        await self.bot.pnw.v3.mutation_bank_withdraw(
             receiver=nation.id, receiver_type=1, note=note, **resource_amount
         )
 

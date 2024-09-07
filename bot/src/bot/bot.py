@@ -14,8 +14,7 @@ from piccolo.engine import PostgresEngine, engine_finder
 import discord
 from discord.ext import commands
 from src.config.settings import get_settings
-from src.pnw.api_v3 import Client
-from src.pnw.ratelimited_async_client import RatelimitedAsyncClient
+from src.pnw.pnwapi import PnwAPI
 
 logger = logging.getLogger(__name__)
 
@@ -25,19 +24,15 @@ COG_PATH = "src/bot/cogs"
 class Bot(commands.Bot):
     """Custom bot class that extends discord.ext.commands.Bot."""
 
-    api_v3: Client
+    pnw: PnwAPI
 
     async def setup_hook(self):
 
         await open_database_connection_pool()
 
-        self.api_v3 = Client(
-            f"https://api.politicsandwar.com/graphql?api_key={get_settings().pnw.api_key}",
-            headers={
-                "X-Bot-Key": get_settings().pnw.bot_key,
-                "X-Api-Key": get_settings().pnw.api_key,
-            },
-            http_client=RatelimitedAsyncClient(),
+        self.pnw = PnwAPI(
+            api_key=get_settings().pnw.api_key,
+            bot_key=get_settings().pnw.bot_key,
         )
 
         await load_all_cogs(self)

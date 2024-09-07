@@ -2,7 +2,13 @@
 This module is used to interact with the Politics and War API.
 """
 
+from logging import getLogger
+from typing import Any
+
 from .api_v3 import Client
+from .subscriptions.subscription import Subscriptions
+
+logger = getLogger(__name__)
 
 
 class PnwAPI:
@@ -21,3 +27,16 @@ class PnwAPI:
                 "X-Api-Key": api_key,
             },
         )
+
+        self.subscriptions = Subscriptions(api_key)
+
+
+async def handle_nation(data: dict[str, Any]):
+    """Handle event."""
+    logger.info("Handling nation with id: %s", data["id"])
+
+
+async def test():
+    pnw = PnwAPI("", "")
+
+    await pnw.subscriptions.subscribe("nation", "update", [handle_nation])

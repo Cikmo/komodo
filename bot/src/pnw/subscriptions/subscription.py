@@ -3,6 +3,7 @@ This module contains the Subscription class, which represents a subscription to 
 """
 
 import logging
+from enum import Enum
 from typing import Any, Callable, Coroutine, Iterable, TypeVar
 
 import aiohttp
@@ -14,6 +15,11 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 Callback = Callable[[Any], Coroutine[Any, Any, Any]]
+
+
+class SubscriptionModel(Enum):
+    NATIONS = "nation"
+    ACCOUNT = "account"
 
 
 class Subscription:
@@ -87,7 +93,11 @@ class Subscription:
 
     async def _callback(self, data: Any):
         for callback in self.callbacks:
-            await callback(data)
+            if isinstance(data, list):
+                for item in data:
+                    await callback(item)
+            else:
+                await callback(data)
 
     async def _get_channel(self, name: str, event: str) -> str | None:
         """Get channel name."""
@@ -113,8 +123,12 @@ class Subscriptions:
     Manages subscriptions to PnW events.
     """
 
-    def __init__(self, pusher: Pusher, pnw_api_key: str):
-        self._pusher = pusher
+    def __init__(self, pnw_api_key: str):
+        self._pusher = Pusher(
+            "a22734a47847a64386c8",
+            custom_host="socket.politicsandwar.com",
+            auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
+        )
         self._pnw_api_key = pnw_api_key
 
         self.subscriptions: dict[str, Subscription] = {}
@@ -166,21 +180,3 @@ class Subscriptions:
             The subscription if it exists. None otherwise.
         """
         return self.subscriptions.get(f"{name}_{event}")
-
-
-async def handle_nation(data: dict[str, Any]):
-    """Handle event."""
-    logger.info("Handling nation with id: %s", data["id"])
-
-
-async def test():
-    subscriptions = Subscriptions(
-        Pusher(
-            "a22734a47847a64386c8",
-            custom_host="socket.politicsandwar.com",
-            auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
-        ),
-        "api_key",
-    )
-
-    subscription = await subscriptions.subscribe("nation", "update", handle_nation)
