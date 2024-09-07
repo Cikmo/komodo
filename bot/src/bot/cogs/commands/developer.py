@@ -122,11 +122,14 @@ class Developer(commands.Cog):
         await ctx.reply(f"Subscribed to {model} {event}.")
 
     async def _callback(self, model: str, event: str, data: Any):
+
         if int(data["id"]) == 239259:
             logger.info("Received event %s %s with data: %s", model, event, data)
             return
 
         logger.info("Received event %s %s with id %s", model, event, data["id"])
+
+        nation = await Nation.objects().where(Nation.id == data["id"]).first()
 
     @dev.command()
     async def sublist(self, ctx: commands.Context[Bot]):
