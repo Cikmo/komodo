@@ -6,13 +6,13 @@ import logging
 from collections import defaultdict
 from enum import Enum
 from random import random
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable, Coroutine
 
 import aiohttp
 from pydantic import ValidationError
 
 from .models import ConnectionEstablishedEvent, PusherEvent
-from .types import EventCallbacks, EventData
+from .types import Callback, EventCallbacks, EventData
 
 MAX_WAIT_SECONDS = 120
 
@@ -35,7 +35,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self,
         loop: asyncio.AbstractEventLoop,
         url: str,
-        callback: Callable[[str, Any, Any], Awaitable[None]],
+        callback: Callable[..., Coroutine[Any, Any, None]],
         log: logging.Logger,
         **kwargs: Any,
     ):
@@ -142,19 +142,22 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             self._log.error(f"Unexpected event: {e}")
             return
 
-        event_name = event.name
-        event_data = event.data
+        # event_name = event.name
+        # event_data = event.data
 
+        # If the event is tied to a channel, call the _callback method that was passed in
+        # when the connection was created.
         if event.channel:
-            await self._callback(event.channel, event_name, event_data)
+            asyncio.create_task(self._callback(event.channel, event.name, event.data))
             return
 
-        if event_name in self._event_callbacks:
-            for callback, (args, kwargs) in self._event_callbacks[event_name].items():
+        # If the event is not tied to a channel, call the connection's event handler.
+        if event.name in self._event_callbacks:
+            for callback, (args, kwargs) in self._event_callbacks[event.name].items():
                 try:
-                    await callback(event_data, *args, **kwargs)
+                    asyncio.create_task(callback(event.data, *args, **kwargs))
                 except Exception:  # type: ignore # pylint: disable=broad-except
-                    self._log.exception(f"Exception in callback: {event_data}")
+                    self._log.exception(f"Exception in callback: {event.data}")
             return
 
         self._log.warning(f"Unhandled event: {event}")
@@ -197,7 +200,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     def bind(
         self,
         event_name: str,
-        callback: Callable[..., Awaitable[None]],
+        callback: Callback,
         *args: Any,
         **kwargs: Any,
     ):
@@ -209,7 +212,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         self._event_callbacks[event_name][callback] = (args, kwargs)
 
-    def unbind(self, event_name: str, callback: Callable[..., Awaitable[None]]):
+    def unbind(self, event_name: str, callback: Callback):
         """Unbind callback from event.
 
         Args:

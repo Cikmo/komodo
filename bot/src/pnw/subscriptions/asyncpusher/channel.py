@@ -3,11 +3,11 @@
 import logging
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from .connection import Connection
 from .models import PusherEvent
-from .types import EventCallbacks, EventData
+from .types import Callback, EventCallbacks, EventData
 
 
 class Channel:
@@ -38,7 +38,7 @@ class Channel:
     def bind(
         self,
         event_name: str,
-        callback: Callable[..., Awaitable[None]],
+        callback: Callback,
         *args: Any,
         **kwargs: Any,
     ):
@@ -50,7 +50,7 @@ class Channel:
         """
         self._event_callbacks[event_name][callback] = (args, kwargs)
 
-    def unbind(self, event_name: str, callback: Callable[..., Awaitable[None]]):
+    def unbind(self, event_name: str, callback: Callback):
         """Unbind a callback from an event.
 
         Args:

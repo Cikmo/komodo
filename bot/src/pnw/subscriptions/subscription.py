@@ -4,17 +4,16 @@ This module contains the Subscription class, which represents a subscription to 
 
 import logging
 from enum import Enum
-from typing import Any, Callable, Coroutine, Iterable, TypeVar
+from typing import Any, Iterable, TypeVar
 
 import aiohttp
 
 from .asyncpusher import Channel, Pusher
+from .asyncpusher.types import Callback
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-Callback = Callable[[Any], Coroutine[Any, Any, Any]]
 
 
 class SubscriptionModel(Enum):
@@ -80,7 +79,13 @@ class Subscription:
         for event_name in self._construct_event_names(self.name, self.event):
             self._channel.bind(event_name, self._callback)
 
+            event_name = f"{event_name}_METADATA"
+            self._channel.bind(event_name, self._metadata)
+
         logger.info("Subscribed to %s %s", self.name, self.event)
+
+    async def _metadata(self, data: Any):
+        logger.info("%s", data)
 
     async def _unsubscribe(self):
         """Unsubscribe from a model in PnW."""
@@ -103,7 +108,7 @@ class Subscription:
         """Get channel name."""
         url = (
             f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{name}/{event}"
-            f"?api_key={self._pnw_api_key}"
+            f"?api_key={self._pnw_api_key}&metadata=true"
         )
 
         async with aiohttp.ClientSession() as session:
@@ -128,6 +133,7 @@ class Subscriptions:
             "a22734a47847a64386c8",
             custom_host="socket.politicsandwar.com",
             auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
+            auto_sub=True,
         )
         self._pnw_api_key = pnw_api_key
 
