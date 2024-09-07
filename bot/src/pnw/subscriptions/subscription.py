@@ -205,6 +205,8 @@ class Subscription:
                         response.status,
                         await response.text(),
                     )
+                    self._last_metadata = None
+                    self._is_rolling_back.clear()
                     return
 
         self._last_metadata = None
