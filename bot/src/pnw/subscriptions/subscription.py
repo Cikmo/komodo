@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Iterable, TypeVar
 
 import aiohttp
+from pydantic import BaseModel
 
 from .asyncpusher import Channel, Pusher
 from .asyncpusher.types import Callback
@@ -14,6 +15,42 @@ from .asyncpusher.types import Callback
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+class MetadataTime(BaseModel):
+    """Metadata time."""
+
+    millis: int
+    nanos: int
+
+    def __eq__(self, other: Any):
+        if isinstance(other, MetadataTime):
+            return (self.millis, self.nanos) == (other.millis, other.nanos)
+        return NotImplemented
+
+    def __lt__(self, other: Any):
+        if isinstance(other, MetadataTime):
+            return (self.millis, self.nanos) < (other.millis, other.nanos)
+        return NotImplemented
+
+    def __gt__(self, other: Any):
+        if isinstance(other, MetadataTime):
+            return (self.millis, self.nanos) > (other.millis, other.nanos)
+        return NotImplemented
+
+    def __le__(self, other: Any):
+        return self == other or self < other
+
+    def __ge__(self, other: Any):
+        return self == other or self > other
+
+
+class MetadataEvent(BaseModel):
+    """Metadata event."""
+
+    after: MetadataTime
+    max: MetadataTime
+    crc32: int
 
 
 class SubscriptionModel(Enum):
@@ -42,6 +79,8 @@ class Subscription:
         self.callbacks = callbacks
 
         self._channel: Channel | None = None
+
+        self._last_metadata: MetadataEvent | None = None
 
     @property
     def is_subscribed(self) -> bool:
@@ -78,14 +117,9 @@ class Subscription:
 
         for event_name in self._construct_event_names(self.name, self.event):
             self._channel.bind(event_name, self._callback)
-
-            event_name = f"{event_name}_METADATA"
-            self._channel.bind(event_name, self._metadata)
+            self._channel.bind(f"{event_name}_METADATA", self._handle_metadata)
 
         logger.info("Subscribed to %s %s", self.name, self.event)
-
-    async def _metadata(self, data: Any):
-        logger.info("%s", data)
 
     async def _unsubscribe(self):
         """Unsubscribe from a model in PnW."""
@@ -104,6 +138,16 @@ class Subscription:
             else:
                 await callback(data)
 
+    async def _handle_metadata(self, data: Any):
+        metadata = MetadataEvent(**data)
+
+        if self._last_metadata and metadata.after != self._last_metadata.max:
+            logger.info("Missed events for %s %s", self.name, self.event)
+            await self.rollback(metadata.after.millis, metadata.after.nanos)
+            return
+
+        self._last_metadata = metadata
+
     async def _get_channel(self, name: str, event: str) -> str | None:
         """Get channel name."""
         url = (
@@ -115,6 +159,30 @@ class Subscription:
             async with session.get(url) as response:
                 # try to get "channel" from response jason
                 return (await response.json()).get("channel")
+
+    async def rollback(self, millis: int, nanos: int):
+        """Rollback the channel to a specific time.
+
+        Args:
+            millis: Milliseconds
+            nanos: Nanoseconds
+        """
+        if not self.is_subscribed:
+            return
+
+        url = (
+            f"https://api.politicsandwar.com/subscriptions/v1/rollback?api_key={self._pnw_api_key}"
+            f"&channel_name={self._channel._name}&time={millis}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
+        )
+
+        logger.info("Rolling back %s %s", self.name, self.event)
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url) as response:
+                if response.status != 200:
+                    logger.error("Failed to rollback %s %s", self.name, self.event)
+                    return
+
+                logger.info("Rolled back %s %s", self.name, self.event)
 
     def _construct_event_names(self, name: str, event: str) -> tuple[str, str]:
         name = name.upper()
@@ -134,6 +202,7 @@ class Subscriptions:
             custom_host="socket.politicsandwar.com",
             auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
             auto_sub=True,
+            max_msg_size=0,  # no limit
         )
         self._pnw_api_key = pnw_api_key
 

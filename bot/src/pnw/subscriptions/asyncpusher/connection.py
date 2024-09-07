@@ -37,12 +37,14 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         url: str,
         callback: Callable[..., Coroutine[Any, Any, None]],
         log: logging.Logger,
+        use_pusher_ping: bool = True,
         **kwargs: Any,
     ):
         self._loop = loop
         self._url = url
         self._callback = callback
         self._log = log
+        self._use_pusher_ping = use_pusher_ping
         self._websocket_params = kwargs
 
         self._event_callbacks: EventCallbacks = defaultdict(dict)
@@ -56,10 +58,12 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._activity_timeout = 120
         self._pong_timeout = 30
         self.state = self.State.IDLE
+        self._last_message_time: float | None = None
 
         self.bind("pusher:connection_established", self._handle_connection)
         self.bind("pusher:connection_failed", self._handle_failure)
         self.bind("pusher:error", self._handle_error)
+        self.bind("pusher:pong", self._handle_pong)
 
     async def open(self):
         """Open connection and wait until it is established."""
@@ -67,6 +71,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         while self.state != self.State.CONNECTED:
             await asyncio.sleep(1)
+
+        if self._use_pusher_ping:
+            self._loop.create_task(self._periodic_ping())
 
     async def close(self):
         """Close connection."""
@@ -94,7 +101,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         await asyncio.sleep(wait_seconds)
 
         async with session.ws_connect(
-            self._url, heartbeat=self._activity_timeout, **self._websocket_params
+            self._url,
+            heartbeat=self._activity_timeout if not self._use_pusher_ping else None,
+            **self._websocket_params,
         ) as ws:
             # internally aiohttp.ClientWebSocketResponse uses heartbeat/2 as pong timeout but pusher protocol advise 30s
             ws._pong_heartbeat = self._pong_timeout  # type: ignore # pylint: disable=protected-access
@@ -105,6 +114,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         while True:
             msg = await ws.receive()
             self._log.debug(f"Websocket message: {msg}")
+            self._last_message_time = self._loop.time()  # Update last message time
             if msg.type == aiohttp.WSMsgType.TEXT:
                 event = json.loads(msg.data)
                 await self._handle_event(event)
@@ -142,11 +152,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             self._log.error(f"Unexpected event: {e}")
             return
 
-        # event_name = event.name
-        # event_data = event.data
-
-        # If the event is tied to a channel, call the _callback method that was passed in
-        # when the connection was created.
         if event.channel:
             asyncio.create_task(self._callback(event.channel, event.name, event.data))
             return
@@ -174,6 +179,40 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             raise ValueError("Websocket not connected")
 
         await self._ws.send_str(event.model_dump_json(by_alias=True, exclude_none=True))
+
+    async def _handle_pong(self, _: Any):
+        self._log.debug("Received pong")
+
+    async def send_ping(self):
+        """Send a ping message to the server."""
+        await self.send_event(PusherEvent(event="pusher:ping"))
+
+    async def _periodic_ping(self):
+        """Periodically send ping messages to keep the connection alive."""
+        while not self._stop:
+            if self.state == self.State.CONNECTED:
+                now = self._loop.time()
+
+                if not self._last_message_time:
+                    self._last_message_time = now
+
+                # sleep until next ping. If the time since last message is greater than the ping interval
+                # then send a ping message
+                await asyncio.sleep(
+                    max(
+                        0,
+                        self._activity_timeout - (now - self._last_message_time),
+                    )
+                )
+
+                # if recieved message within ping interval, continue to next iteration since we don't need to send ping
+                now = self._loop.time()
+                if now - self._last_message_time < self._activity_timeout:
+                    continue
+
+                await self.send_ping()
+                self._last_message_time = self._loop.time()
+                self._log.info("Sent ping")
 
     async def _handle_connection(self, data: EventData):
         if not data:
