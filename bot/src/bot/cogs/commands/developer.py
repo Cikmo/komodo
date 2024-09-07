@@ -119,10 +119,19 @@ class Developer(commands.Cog):
 
         await self.bot.pnw.subscriptions.subscribe(model, event, [callback])
 
-        await ctx.reply("Subscribed to events.")
+        await ctx.reply(f"Subscribed to {model} {event}.")
 
     async def _callback(self, model: str, event: str, data: Any):
+        if int(data["id"]) == 239259:
+            logger.info("Received event %s %s with data: %s", model, event, data)
+            return
+
         logger.info("Received event %s %s with id %s", model, event, data["id"])
+
+    @dev.command()
+    async def sublist(self, ctx: commands.Context[Bot]):
+        """List all subscriptions."""
+        await ctx.reply("\n".join(self.bot.pnw.subscriptions.subscriptions))
 
     @dev.command()
     async def sync_all(self, ctx: commands.Context[Bot]):

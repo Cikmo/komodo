@@ -146,6 +146,12 @@ class Subscriptions:
         Returns:
             The subscription object.
         """
+        if f"{name}_{event}" in self.subscriptions:
+            logger.warning(
+                "Tried to subscribe to %s %s, but already subscribed", name, event
+            )
+            return self.subscriptions[f"{name}_{event}"]
+
         subscription = Subscription(
             self._pusher, self._pnw_api_key, name, event, list(callbacks)
         )
