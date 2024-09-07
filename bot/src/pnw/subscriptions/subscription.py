@@ -2,6 +2,7 @@
 This module contains the Subscription class, which represents a subscription to a PnW event.
 """
 
+import asyncio
 import logging
 from enum import Enum
 from typing import Any, Iterable, TypeVar
@@ -81,6 +82,9 @@ class Subscription:
         self._channel: Channel | None = None
 
         self._last_metadata: MetadataEvent | None = None
+        self._is_rolling_back = asyncio.Event()
+
+        self._semophore = asyncio.Semaphore(1)
 
     @property
     def is_subscribed(self) -> bool:
@@ -139,11 +143,24 @@ class Subscription:
                 await callback(data)
 
     async def _handle_metadata(self, data: Any):
+        if self._is_rolling_back.is_set():
+            return
+
         metadata = MetadataEvent(**data)
 
-        if self._last_metadata and metadata.after != self._last_metadata.max:
+        if (
+            self._last_metadata
+            and metadata.max >= self._last_metadata.max
+            and metadata.after > self._last_metadata.max
+        ):
+
             logger.info("Missed events for %s %s", self.name, self.event)
-            await self.rollback(metadata.after.millis, metadata.after.nanos)
+            logger.info(
+                "After: %s, last_max: %s", metadata.after, self._last_metadata.max
+            )
+            await self.rollback(
+                self._last_metadata.max.millis, self._last_metadata.max.nanos
+            )
             return
 
         self._last_metadata = metadata
@@ -170,19 +187,29 @@ class Subscription:
         if not self.is_subscribed:
             return
 
+        self._is_rolling_back.set()
+
         url = (
-            f"https://api.politicsandwar.com/subscriptions/v1/rollback?api_key={self._pnw_api_key}"
-            f"&channel_name={self._channel._name}&time={millis}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
+            f"https://api.politicsandwar.com/subscriptions/v1/rollback"
+            f"?channel_name={self._channel._name}&time={millis - 2000}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
         )
 
         logger.info("Rolling back %s %s", self.name, self.event)
         async with aiohttp.ClientSession() as session:
-            async with session.post(url) as response:
+            async with session.get(url) as response:
                 if response.status != 200:
-                    logger.error("Failed to rollback %s %s", self.name, self.event)
+                    logger.error(
+                        "Failed to rollback %s %s with status %s: %s",
+                        self.name,
+                        self.event,
+                        response.status,
+                        await response.text(),
+                    )
                     return
 
-                logger.info("Rolled back %s %s", self.name, self.event)
+        self._last_metadata = None
+        self._is_rolling_back.clear()
+        logger.info("Rolled back %s %s", self.name, self.event)
 
     def _construct_event_names(self, name: str, event: str) -> tuple[str, str]:
         name = name.upper()

@@ -131,6 +131,21 @@ class Developer(commands.Cog):
 
         nation = await Nation.objects().where(Nation.id == data["id"]).first()
 
+        if not nation:
+            return
+
+    @dev.command()
+    async def debugclose(self, ctx: commands.Context[Bot], model: str, event: str):
+        """Close the debug channel."""
+        sub = self.bot.pnw.subscriptions.get(model, event)
+        if not sub:
+            await ctx.reply("Subscription not found.")
+            return
+
+        await sub._channel._connection._ws.close()  # type: ignore # pylint: disable=protected-access
+
+        await ctx.reply(f"Closed {model} {event}.")
+
     @dev.command()
     async def sublist(self, ctx: commands.Context[Bot]):
         """List all subscriptions."""
