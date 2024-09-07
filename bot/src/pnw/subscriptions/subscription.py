@@ -3,7 +3,7 @@ This module contains the Subscription class, which represents a subscription to 
 """
 
 import logging
-from typing import Any, Callable, Coroutine, TypeVar
+from typing import Any, Callable, Coroutine, Iterable, TypeVar
 
 import aiohttp
 
@@ -51,14 +51,14 @@ class Subscription:
         """
         self.callbacks.append(callback)
 
-    async def start(self):
+    async def _subscribe(self):
         """Subscribe to a model in PnW.
 
         Returns:
             The subscription object if successful. None otherwise.
         """
         if self.is_subscribed:
-            return self
+            return
 
         if not self._pusher.connection.is_connected():
             await self._pusher.connect()
@@ -76,7 +76,14 @@ class Subscription:
 
         logger.info("Subscribed to %s %s", self.name, self.event)
 
-        return self
+    async def _unsubscribe(self):
+        """Unsubscribe from a model in PnW."""
+        if not self.is_subscribed:
+            return
+
+        await self._pusher.unsubscribe(self._channel._name)  # type: ignore # pylint: disable=protected-access
+
+        self._channel = None
 
     async def _callback(self, data: Any):
         for callback in self.callbacks:
@@ -113,7 +120,7 @@ class Subscriptions:
         self.subscriptions: dict[str, Subscription] = {}
 
     async def subscribe(
-        self, name: str, event: str, *callbacks: Callback
+        self, name: str, event: str, callbacks: Iterable[Callback]
     ) -> Subscription:
         """Subscribe to a PnW event.
 
@@ -130,7 +137,7 @@ class Subscriptions:
         )
         self.subscriptions[f"{name}_{event}"] = subscription
 
-        await subscription.start()
+        await subscription._subscribe()  # type: ignore # pylint: disable=protected-access
 
         return subscription
 
@@ -140,13 +147,12 @@ class Subscriptions:
         Args:
             subscription: The subscription to unsubscribe from.
         """
-        if not subscription.is_subscribed:
+        if not subscription in self.subscriptions.values():
             return
 
-        await self._pusher.unsubscribe(subscription._channel._name)  # type: ignore # pylint: disable=protected-access
+        await subscription._unsubscribe()  # type: ignore # pylint: disable=protected-access
 
         del self.subscriptions[f"{subscription.name}_{subscription.event}"]
-        subscription._channel = None  # type: ignore # pylint: disable=protected-access
         logger.info("Unsubscribed from %s %s", subscription.name, subscription.event)
 
     def get(self, name: str, event: str) -> Subscription | None:
@@ -160,3 +166,21 @@ class Subscriptions:
             The subscription if it exists. None otherwise.
         """
         return self.subscriptions.get(f"{name}_{event}")
+
+
+async def handle_nation(data: dict[str, Any]):
+    """Handle event."""
+    logger.info("Handling nation with id: %s", data["id"])
+
+
+async def test():
+    subscriptions = Subscriptions(
+        Pusher(
+            "a22734a47847a64386c8",
+            custom_host="socket.politicsandwar.com",
+            auth_endpoint="https://api.politicsandwar.com/subscriptions/v1/auth",
+        ),
+        "api_key",
+    )
+
+    subscription = await subscriptions.subscribe("nation", "update", handle_nation)
