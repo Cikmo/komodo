@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from timeit import default_timer
-from typing import TYPE_CHECKING, Any, Awaitable, Self
+from typing import TYPE_CHECKING, Any, Awaitable, Self, cast
 
 from pydantic import BaseModel
 
@@ -126,21 +126,37 @@ class Developer(commands.Cog):
 
         await ctx.reply("Subscribed to nation updates.")
 
+    async def nation_create_callback(self, data: SubscriptionNationFields):
+        """Callback for nation creation."""
+
+        nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+
+        nation_in_db = (
+            await Nation.select(Nation.id).where(Nation.id == nation.id).first()
+        )
+
+        if nation_in_db:
+            return
+
+        await nation.save()
+
+        self.bot.dispatch("pnw_nation_create", nation)
+
     async def nation_update_callback(self, data: SubscriptionNationFields):
         """Callback for nation updates."""
 
-        # logger.info("Received %s %s with id %s", model, event, data["id"])
+        nation_in_db = await Nation.objects().where(Nation.id == data.id).first()
 
-        # logger.info("%s", data)
+        if not nation_in_db:
+            return await self.nation_create_callback(data)
 
-        nation: Nation = Nation.from_api_v3(data)  # type: ignore
+        # TODO: Figure out how to efficiently check what fields have changed
 
-        logger.info("%s", nation)  # type: ignore
+        new_nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+        new_nation._exists_in_db = True  # type: ignore # pylint: disable=protected-access
 
-        # nation = await Nation.objects().where(Nation.id == data["id"]).first()
-
-        # if not nation:
-        #    return
+        await new_nation.save()
+        logger.info("Updated nation %s", nation_in_db.name)
 
     @dev.command()
     async def debugclose(
