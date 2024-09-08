@@ -185,9 +185,6 @@ class Subscription:
             logger.info(
                 "After: %s, last_max: %s", new_metadata.after, self._cached_metadata.max
             )
-            # await self.rollback(
-            #    self._last_metadata.max.millis, self._last_metadata.max.nanos
-            # )
             await self._unsubscribe()
             await self._subscribe(
                 (
@@ -212,44 +209,7 @@ class Subscription:
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
-                # try to get "channel" from response jason
                 return (await response.json()).get("channel")
-
-    async def rollback(self, millis: int, nanos: int):
-        """Rollback the channel to a specific time.
-
-        Args:
-            millis: Milliseconds
-            nanos: Nanoseconds
-        """
-        if not self.is_subscribed:
-            return
-
-        self._is_rolling_back.set()
-
-        url = (
-            f"https://api.politicsandwar.com/subscriptions/v1/rollback"
-            f"?channel_name={self._channel._name}&time={millis}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
-        )
-
-        logger.info("Rolling back %s %s", self.name, self.event)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status != 200:
-                    logger.error(
-                        "Failed to rollback %s %s with status %s: %s",
-                        self.name,
-                        self.event,
-                        response.status,
-                        await response.text(),
-                    )
-                    self._last_metadata = None
-                    self._is_rolling_back.clear()
-                    return
-
-        # self._last_metadata = None
-        self._is_rolling_back.clear()
-        logger.info("Rolled back %s %s", self.name, self.event)
 
     def _construct_event_names(self, name: str, event: str) -> tuple[str, str]:
         name = name.upper()

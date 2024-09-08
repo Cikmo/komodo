@@ -153,7 +153,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             return
 
         if event.channel:
-            asyncio.create_task(self._callback(event.channel, event.name, event.data))
+            # asyncio.create_task(self._callback(event.channel, event.name, event.data))
+            await self._callback(event.channel, event.name, event.data)
             return
 
         # If the event is not tied to a channel, call the connection's event handler.
