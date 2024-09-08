@@ -227,8 +227,8 @@ class Subscriptions:
             time_to_sleep = next_turn_change() - datetime.now(tz=timezone.utc)
 
             sleep_seconds = (
-                time_to_sleep.total_seconds() - 60
-            )  # 1 minute before turn change
+                time_to_sleep.total_seconds() - 59
+            )  # 1 minute (ish) before turn change
 
             if sleep_seconds > 0:
                 logger.info("Sleeping for %s minutes", sleep_seconds / 60)
