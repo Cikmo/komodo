@@ -127,7 +127,7 @@ class Developer(commands.Cog):
             logger.info("Received event %s %s with data: %s", model, event, data)
             return
 
-        logger.info("Received event %s %s with id %s", model, event, data["id"])
+        logger.debug("Received event %s %s with id %s", model, event, data["id"])
 
         nation = await Nation.objects().where(Nation.id == data["id"]).first()
 

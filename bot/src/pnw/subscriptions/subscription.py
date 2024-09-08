@@ -81,7 +81,7 @@ class Subscription:
 
         self._channel: Channel | None = None
 
-        self._last_metadata: MetadataEvent | None = None
+        self._cached_metadata: MetadataEvent | None = None
         self._is_rolling_back = asyncio.Event()
 
         self._semophore = asyncio.Semaphore(1)
@@ -99,7 +99,7 @@ class Subscription:
         """
         self.callbacks.append(callback)
 
-    async def _subscribe(self):
+    async def _subscribe(self, since: tuple[int, int] | None = None):
         """Subscribe to a model in PnW.
 
         Returns:
@@ -111,7 +111,7 @@ class Subscription:
         if not self._pusher.connection.is_connected():
             await self._pusher.connect()
 
-        channel_name = await self._get_channel(self.name, self.event)
+        channel_name = await self._get_channel(self.name, self.event, since)
 
         if not channel_name:
             logger.error("Could not get channel name for %s %s", self.name, self.event)
@@ -142,35 +142,73 @@ class Subscription:
             else:
                 await callback(data)
 
+    def time_difference(self, time1: tuple[int, int], time2: tuple[int, int]):
+        # Unpack tuples (millis, nanos)
+        millis1, nanos1 = time1
+        millis2, nanos2 = time2
+
+        # Calculate the difference in milliseconds
+        millis_diff = millis2 - millis1
+
+        # Calculate the difference in nanoseconds
+        nanos_diff = nanos2 - nanos1
+
+        # If nanoseconds are negative, borrow 1 ms (which is 1,000,000 nanoseconds)
+        if nanos_diff < 0:
+            millis_diff -= 1
+            nanos_diff += 1_000_000
+
+        return millis_diff, nanos_diff
+
     async def _handle_metadata(self, data: Any):
         if self._is_rolling_back.is_set():
             return
 
-        metadata = MetadataEvent(**data)
+        new_metadata = MetadataEvent(**data)
 
-        if (
-            self._last_metadata
-            and metadata.max >= self._last_metadata.max
-            and metadata.after > self._last_metadata.max
-        ):
+        if not self._cached_metadata:
+            self._cached_metadata = new_metadata
+            return
 
+        logger.info(
+            "Received metadata, with time diff: %s",
+            self.time_difference(
+                (self._cached_metadata.max.millis, self._cached_metadata.max.nanos),
+                (new_metadata.after.millis, new_metadata.after.nanos),
+            ),
+        )
+
+        # If the new metadata is newer than the cached metadata,
+        # we missed some events and need to rollback
+        if self._cached_metadata.max < new_metadata.after:
             logger.info("Missed events for %s %s", self.name, self.event)
             logger.info(
-                "After: %s, last_max: %s", metadata.after, self._last_metadata.max
+                "After: %s, last_max: %s", new_metadata.after, self._cached_metadata.max
             )
-            await self.rollback(
-                self._last_metadata.max.millis, self._last_metadata.max.nanos
+            # await self.rollback(
+            #    self._last_metadata.max.millis, self._last_metadata.max.nanos
+            # )
+            await self._unsubscribe()
+            await self._subscribe(
+                (
+                    self._cached_metadata.max.millis,
+                    self._cached_metadata.max.nanos,
+                )
             )
             return
 
-        self._last_metadata = metadata
+        self._cached_metadata = new_metadata
 
-    async def _get_channel(self, name: str, event: str) -> str | None:
+    async def _get_channel(
+        self, name: str, event: str, since: tuple[int, int] | None = None
+    ) -> str | None:
         """Get channel name."""
         url = (
             f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{name}/{event}"
             f"?api_key={self._pnw_api_key}&metadata=true"
         )
+        if since:
+            url += f"&since={since[0]}&nanos={since[1]}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -191,7 +229,7 @@ class Subscription:
 
         url = (
             f"https://api.politicsandwar.com/subscriptions/v1/rollback"
-            f"?channel_name={self._channel._name}&time={millis - 2000}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
+            f"?channel_name={self._channel._name}&time={millis}&nanos={nanos}"  # type: ignore # pylint: disable=protected-access
         )
 
         logger.info("Rolling back %s %s", self.name, self.event)
@@ -209,7 +247,7 @@ class Subscription:
                     self._is_rolling_back.clear()
                     return
 
-        self._last_metadata = None
+        # self._last_metadata = None
         self._is_rolling_back.clear()
         logger.info("Rolled back %s %s", self.name, self.event)
 
