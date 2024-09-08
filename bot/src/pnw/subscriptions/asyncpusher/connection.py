@@ -183,7 +183,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         await self._ws.send_str(event.model_dump_json(by_alias=True, exclude_none=True))
 
     async def _handle_pong(self, _: Any):
-        self._log.debug("Received pong")
+        self._log.info("Received pong")
 
     async def send_ping(self):
         """Send a ping message to the server."""
@@ -212,9 +212,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 if now - self._last_message_time < self._activity_timeout:
                     continue
 
+                self._log.info("Sending ping")
                 await self.send_ping()
-                self._last_message_time = self._loop.time()
-                self._log.info("Sent ping")
+                await asyncio.sleep(self._pong_timeout)
 
     async def _handle_connection(self, data: EventData):
         if not data:

@@ -123,12 +123,6 @@ class Developer(commands.Cog):
 
     async def _callback(self, model: str, event: str, data: Any):
 
-        if int(data["id"]) == 239259:
-            logger.info("Received event %s %s with data: %s", model, event, data)
-            return
-
-        logger.debug("Received event %s %s with id %s", model, event, data["id"])
-
         nation = await Nation.objects().where(Nation.id == data["id"]).first()
 
         if not nation:
