@@ -82,7 +82,6 @@ class Subscription:
         self._channel: Channel | None = None
 
         self._cached_metadata: MetadataEvent | None = None
-        self._is_rolling_back = asyncio.Event()
 
         self._semophore = asyncio.Semaphore(1)
 
@@ -142,28 +141,7 @@ class Subscription:
             else:
                 await callback(data)
 
-    def time_difference(self, time1: tuple[int, int], time2: tuple[int, int]):
-        # Unpack tuples (millis, nanos)
-        millis1, nanos1 = time1
-        millis2, nanos2 = time2
-
-        # Calculate the difference in milliseconds
-        millis_diff = millis2 - millis1
-
-        # Calculate the difference in nanoseconds
-        nanos_diff = nanos2 - nanos1
-
-        # If nanoseconds are negative, borrow 1 ms (which is 1,000,000 nanoseconds)
-        if nanos_diff < 0:
-            millis_diff -= 1
-            nanos_diff += 1_000_000
-
-        return millis_diff, nanos_diff
-
     async def _handle_metadata(self, data: Any):
-        if self._is_rolling_back.is_set():
-            return
-
         new_metadata = MetadataEvent(**data)
 
         if not self._cached_metadata:
@@ -171,25 +149,25 @@ class Subscription:
             return
 
         logger.info(
-            "Received metadata, with time diff: %s",
-            self.time_difference(
-                (self._cached_metadata.max.millis, self._cached_metadata.max.nanos),
-                (new_metadata.after.millis, new_metadata.after.nanos),
-            ),
+            "Received metadata for %s %s: %s", self.name, self.event, new_metadata
         )
 
         # If the new metadata is newer than the cached metadata,
         # we missed some events and need to rollback
         if self._cached_metadata.max < new_metadata.after:
-            logger.info("Missed events for %s %s", self.name, self.event)
             logger.info(
-                "After: %s, last_max: %s", new_metadata.after, self._cached_metadata.max
+                "Missed events for %s %s. Rolling back...", self.name, self.event
+            )
+            logger.info(
+                "Cached metadata: %s, New metadata: %s",
+                self._cached_metadata,
+                new_metadata,
             )
             await self._unsubscribe()
             await self._subscribe(
                 (
                     self._cached_metadata.max.millis,
-                    self._cached_metadata.max.nanos,
+                    self._cached_metadata.max.nanos - 1,
                 )
             )
             return
