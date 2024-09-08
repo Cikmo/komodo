@@ -4,12 +4,14 @@ This module contains the Subscription class, which represents a subscription to 
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Iterable, TypeVar
 
 import aiohttp
 from pydantic import BaseModel
 
+from ..utils import is_turn_change_window, next_turn_change
 from .asyncpusher import Channel, Pusher
 from .asyncpusher.types import Callback
 
@@ -83,7 +85,7 @@ class Subscription:
 
         self._cached_metadata: MetadataEvent | None = None
 
-        self._semophore = asyncio.Semaphore(1)
+        self._turn_change_check_interval = 10
 
     @property
     def is_subscribed(self) -> bool:
@@ -115,6 +117,10 @@ class Subscription:
         if not channel_name:
             logger.error("Could not get channel name for %s %s", self.name, self.event)
             return
+
+        if turn_change_window := is_turn_change_window():
+            logger.info("Trying to subscribe within turn change window. Waiting...")
+            await asyncio.sleep(turn_change_window.total_seconds())
 
         self._channel = await self._pusher.subscribe(channel_name)
 
@@ -212,6 +218,45 @@ class Subscriptions:
         self._pnw_api_key = pnw_api_key
 
         self.subscriptions: dict[str, Subscription] = {}
+
+        asyncio.create_task(self.turn_change_checker())
+
+    async def turn_change_checker(self):
+        """Check for turn change windows."""
+        while True:
+            time_to_sleep = next_turn_change() - datetime.now(tz=timezone.utc)
+
+            sleep_seconds = (
+                time_to_sleep.total_seconds() - 60
+            )  # 1 minute before turn change
+
+            if sleep_seconds > 0:
+                logger.info("Sleeping for %s minutes", sleep_seconds / 60)
+                await asyncio.sleep(sleep_seconds)
+
+            logger.info("Checking for turn change window...")
+
+            if turn_change_window := is_turn_change_window():
+                logger.info("Within turn change window. Waiting...")
+
+                for subscription in self.subscriptions.values():
+                    if subscription.is_subscribed:
+                        await subscription._unsubscribe()  # type: ignore # pylint: disable=protected-access
+
+                await asyncio.sleep(turn_change_window.total_seconds())
+
+                for subscription in self.subscriptions.values():
+                    if not subscription.is_subscribed:
+                        await subscription._subscribe(  # type: ignore # pylint: disable=protected-access
+                            (
+                                (
+                                    subscription._cached_metadata.max.millis,  # type: ignore # pylint: disable=protected-access
+                                    subscription._cached_metadata.max.nanos - 1,  # type: ignore # pylint: disable=protected-access
+                                )
+                                if subscription._cached_metadata  # type: ignore # pylint: disable=protected-access
+                                else None
+                            )
+                        )
 
     async def subscribe(
         self, name: str, event: str, callbacks: Iterable[Callback]
