@@ -2,22 +2,19 @@
 This module contains the Subscription class, which represents a subscription to a PnW event.
 """
 
-import asyncio
+from __future__ import annotations
+
 import logging
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Iterable, TypeVar
+from enum import StrEnum, auto
+from typing import Any, Iterable
 
 import aiohttp
 from pydantic import BaseModel
 
-from ..utils import is_turn_change_window, next_turn_change
 from .asyncpusher import Channel, Pusher
 from .asyncpusher.types import Callback
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar("T")
 
 
 class MetadataTime(BaseModel):
@@ -56,9 +53,19 @@ class MetadataEvent(BaseModel):
     crc32: int
 
 
-class SubscriptionModel(Enum):
-    NATIONS = "nation"
-    ACCOUNT = "account"
+class SubscriptionModel(StrEnum):
+    """Subscription models."""
+
+    NATION = auto()
+    ACCOUNT = auto()
+
+
+class SubscriptionEvent(StrEnum):
+    """Subscription events."""
+
+    CREATE = auto()
+    UPDATE = auto()
+    DELETE = auto()
 
 
 class Subscription:
@@ -70,14 +77,14 @@ class Subscription:
         self,
         pusher: Pusher,
         pnw_api_key: str,
-        name: str,
-        event: str,
+        model: SubscriptionModel,
+        event: SubscriptionEvent,
         callbacks: list[Callback],
     ):
         self._pusher = pusher
         self._pnw_api_key = pnw_api_key
 
-        self.name = name
+        self.model = model
         self.event = event
         self.callbacks = callbacks
 
@@ -112,23 +119,23 @@ class Subscription:
         if not self._pusher.connection.is_connected():
             await self._pusher.connect()
 
-        channel_name = await self._get_channel(self.name, self.event, since)
+        channel_name = await self._get_channel(since)
 
         if not channel_name:
-            logger.error("Could not get channel name for %s %s", self.name, self.event)
+            logger.error(
+                "Could not get channel name for %s %s",
+                self.model.value,
+                self.event.value,
+            )
             return
-
-        if turn_change_window := is_turn_change_window():
-            logger.info("Trying to subscribe within turn change window. Waiting...")
-            await asyncio.sleep(turn_change_window.total_seconds())
 
         self._channel = await self._pusher.subscribe(channel_name)
 
-        for event_name in self._construct_event_names(self.name, self.event):
+        for event_name in self._construct_event_names(self.model, self.event):
             self._channel.bind(event_name, self._callback)
             self._channel.bind(f"{event_name}_METADATA", self._handle_metadata)
 
-        logger.info("Subscribed to %s %s", self.name, self.event)
+        logger.info("Subscribed to %s %s", self.model, self.event)
 
     async def _unsubscribe(self):
         """Unsubscribe from a model in PnW."""
@@ -158,7 +165,7 @@ class Subscription:
         # we missed some events and need to rollback
         if self._cached_metadata.max < new_metadata.after:
             logger.info(
-                "Missed events for %s %s. Rolling back...", self.name, self.event
+                "Missed events for %s %s. Rolling back...", self.model, self.event
             )
             logger.info(
                 "Cached metadata: %s, New metadata: %s",
@@ -176,12 +183,10 @@ class Subscription:
 
         self._cached_metadata = new_metadata
 
-    async def _get_channel(
-        self, name: str, event: str, since: tuple[int, int] | None = None
-    ) -> str | None:
+    async def _get_channel(self, since: tuple[int, int] | None = None) -> str | None:
         """Get channel name."""
         url = (
-            f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{name}/{event}"
+            f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{self.model.value}/{self.event.value}"
             f"?api_key={self._pnw_api_key}&metadata=true"
         )
         if since:
@@ -191,11 +196,13 @@ class Subscription:
             async with session.get(url) as response:
                 return (await response.json()).get("channel")
 
-    def _construct_event_names(self, name: str, event: str) -> tuple[str, str]:
-        name = name.upper()
-        event = event.upper()
+    def _construct_event_names(
+        self, model: SubscriptionModel, event: SubscriptionEvent
+    ) -> tuple[str, str]:
+        model_str = model.value.upper()
+        event_str = event.value.upper()
 
-        return f"{name}_{event}", f"BULK_{name}_{event}"
+        return f"{model_str}_{event_str}", f"BULK_{model_str}_{event_str}"
 
 
 class Subscriptions:
@@ -215,68 +222,34 @@ class Subscriptions:
 
         self.subscriptions: dict[str, Subscription] = {}
 
-        asyncio.create_task(self.turn_change_checker())
-
-    async def turn_change_checker(self):
-        """Check for turn change windows."""
-        while True:
-            time_to_sleep = next_turn_change() - datetime.now(tz=timezone.utc)
-
-            sleep_seconds = (
-                time_to_sleep.total_seconds() - 59
-            )  # 1 minute (ish) before turn change
-
-            if sleep_seconds > 0:
-                logger.info("Sleeping for %s minutes", sleep_seconds / 60)
-                await asyncio.sleep(sleep_seconds)
-
-            logger.info("Checking for turn change window...")
-
-            if turn_change_window := is_turn_change_window():
-                logger.info("Within turn change window. Waiting...")
-
-                for subscription in self.subscriptions.values():
-                    if subscription.is_subscribed:
-                        await subscription._unsubscribe()  # type: ignore # pylint: disable=protected-access
-
-                await asyncio.sleep(turn_change_window.total_seconds())
-
-                for subscription in self.subscriptions.values():
-                    if not subscription.is_subscribed:
-                        await subscription._subscribe(  # type: ignore # pylint: disable=protected-access
-                            (
-                                (
-                                    subscription._cached_metadata.max.millis,  # type: ignore # pylint: disable=protected-access
-                                    subscription._cached_metadata.max.nanos - 1,  # type: ignore # pylint: disable=protected-access
-                                )
-                                if subscription._cached_metadata  # type: ignore # pylint: disable=protected-access
-                                else None
-                            )
-                        )
-
     async def subscribe(
-        self, name: str, event: str, callbacks: Iterable[Callback]
+        self,
+        model: SubscriptionModel,
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
     ) -> Subscription:
         """Subscribe to a PnW event.
 
         Args:
-            name: The name of the model to subscribe to.
+            model: The name of the model to subscribe to.
             event: The event to subscribe to.
             callbacks: The callbacks to call when the event is triggered.
 
         Returns:
             The subscription object.
         """
-        if f"{name}_{event}" in self.subscriptions:
+        if f"{model.value}_{event.value}" in self.subscriptions:
             logger.warning(
-                "Tried to subscribe to %s %s, but already subscribed", name, event
+                "Tried to subscribe to %s %s, but already subscribed",
+                model.value,
+                event.value,
             )
-            return self.subscriptions[f"{name}_{event}"]
+            return self.subscriptions[f"{model.value}_{event.value}"]
 
         subscription = Subscription(
-            self._pusher, self._pnw_api_key, name, event, list(callbacks)
+            self._pusher, self._pnw_api_key, model, event, list(callbacks)
         )
-        self.subscriptions[f"{name}_{event}"] = subscription
+        self.subscriptions[f"{model.value}_{event.value}"] = subscription
 
         await subscription._subscribe()  # type: ignore # pylint: disable=protected-access
 
@@ -293,10 +266,16 @@ class Subscriptions:
 
         await subscription._unsubscribe()  # type: ignore # pylint: disable=protected-access
 
-        del self.subscriptions[f"{subscription.name}_{subscription.event}"]
-        logger.info("Unsubscribed from %s %s", subscription.name, subscription.event)
+        del self.subscriptions[f"{subscription.model.value}_{subscription.event.value}"]
+        logger.info(
+            "Unsubscribed from %s %s",
+            subscription.model.value,
+            subscription.event.value,
+        )
 
-    def get(self, name: str, event: str) -> Subscription | None:
+    def get(
+        self, model: SubscriptionModel, event: SubscriptionEvent
+    ) -> Subscription | None:
         """Get a subscription by name and event.
 
         Args:
@@ -306,4 +285,4 @@ class Subscriptions:
         Returns:
             The subscription if it exists. None otherwise.
         """
-        return self.subscriptions.get(f"{name}_{event}")
+        return self.subscriptions.get(f"{model.value}_{event.value}")

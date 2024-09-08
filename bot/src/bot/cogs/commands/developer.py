@@ -18,6 +18,7 @@ from src.database.tables.pnw import City, Nation
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
+from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
 
 if TYPE_CHECKING:
     from src.bot import Bot
@@ -111,17 +112,27 @@ class Developer(commands.Cog):
         await ctx.reply(embed=embed, view=self.confirm_view)
 
     @dev.command()
-    async def subscribe(self, ctx: commands.Context[Bot], model: str, event: str):
+    async def subscribe(
+        self,
+        ctx: commands.Context[Bot],
+        model: str,
+        event: str,
+    ):
         """Test command."""
-        callback: Callable[[str], Coroutine[Any, Any, Any]] = (
-            lambda data: self._callback(model, event, data)
+        model_enum = SubscriptionModel(model)
+        event__enum = SubscriptionEvent(event)
+
+        callback: Callable[[Any], Coroutine[Any, Any, Any]] = (
+            lambda data: self._callback(model_enum, event__enum, data)
         )
 
-        await self.bot.pnw.subscriptions.subscribe(model, event, [callback])
+        await self.bot.pnw.subscriptions.subscribe(model_enum, event__enum, [callback])
 
-        await ctx.reply(f"Subscribed to {model} {event}.")
+        await ctx.reply(f"Subscribed to {model_enum.value} {event__enum.value}.")
 
-    async def _callback(self, model: str, event: str, data: Any):
+    async def _callback(
+        self, _model: SubscriptionModel, _event: SubscriptionEvent, data: Any
+    ):
 
         nation = await Nation.objects().where(Nation.id == data["id"]).first()
 
@@ -129,7 +140,12 @@ class Developer(commands.Cog):
             return
 
     @dev.command()
-    async def debugclose(self, ctx: commands.Context[Bot], model: str, event: str):
+    async def debugclose(
+        self,
+        ctx: commands.Context[Bot],
+        model: SubscriptionModel,
+        event: SubscriptionEvent,
+    ) -> None:
         """Close the debug channel."""
         sub = self.bot.pnw.subscriptions.get(model, event)
         if not sub:
@@ -138,7 +154,7 @@ class Developer(commands.Cog):
 
         await sub._channel._connection._ws.close()  # type: ignore # pylint: disable=protected-access
 
-        await ctx.reply(f"Closed {model} {event}.")
+        await ctx.reply(f"Closed {model.value} {event.value}.")
 
     @dev.command()
     async def sublist(self, ctx: commands.Context[Bot]):

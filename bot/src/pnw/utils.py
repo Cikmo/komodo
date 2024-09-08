@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 
-TURN_CHANGE_DURATION = 7
+TURN_CHANGE_DURATION = 1
 DAY_CHANGE_DURATION = 10
 
 PRE_TURN_CHANGE_CHECK = 1
