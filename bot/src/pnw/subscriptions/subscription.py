@@ -154,10 +154,6 @@ class Subscription:
             self._cached_metadata = new_metadata
             return
 
-        logger.info(
-            "Received metadata for %s %s: %s", self.name, self.event, new_metadata
-        )
-
         # If the new metadata is newer than the cached metadata,
         # we missed some events and need to rollback
         if self._cached_metadata.max < new_metadata.after:
