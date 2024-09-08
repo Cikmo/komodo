@@ -119,13 +119,13 @@ class Nation(PnwBaseTable[NationFields]):
     num_cities = Integer()
     color = Text(choices=Color)
     score = Real()
-    update_timezone = Real(null=True)  # API name: update_tz
+    update_timezone = Real(null=True, default=None)  # API name: update_tz
     population = Integer()
     flag_url = Text()  # API name: flag
     vacation_mode_turns = Integer()
     beige_turns = Integer()
     espionage_available = Boolean()
-    last_active = Timestamptz()
+    last_active = Timestamptz(null=True, default=None)
     date_created = Timestamptz()  # API name: date
     soldiers = Integer()
     tanks = Integer()
@@ -134,16 +134,14 @@ class Nation(PnwBaseTable[NationFields]):
     missiles = Integer()
     nukes = Integer()
     spies = Integer()
-    discord_id: BigInt | None = BigInt(index=True, null=True)
+    discord_id = BigInt(index=True, null=True, default=None)
     turns_since_last_city = Integer()
     turns_since_last_project = Integer()
     num_projects = Integer()  # API name: projects
     project_bits = BigInt()
     wars_won = Integer()
     wars_lost = Integer()
-    offensive_war_count = Integer()  # API name: offensive_wars_count
-    defensive_war_count = Integer()  # API name: defensive_wars_count
-    alliance_join_date = Timestamptz(null=True)
+    alliance_join_date = Timestamptz(null=True, default=None)
 
     alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
     alliance_position = ForeignKey(
@@ -162,10 +160,12 @@ class Nation(PnwBaseTable[NationFields]):
 
     @classmethod
     def preprocess_api_v3_model(cls, model: NationFields) -> NationFields:
-        if model.alliance_id == "0" or model.alliance_obj is None:
+        if model.alliance_id == 0 or (
+            model.alliance_obj is None if hasattr(model, "alliance_obj") else False
+        ):
             model.alliance_id = None
 
-        if model.alliance_position_id == "0":
+        if model.alliance_position_id == 0:
             model.alliance_position_id = None
 
         return model
@@ -178,8 +178,6 @@ class Nation(PnwBaseTable[NationFields]):
             (cls.flag_url, "flag", str),
             (cls.date_created, "date", datetime),
             (cls.num_projects, "projects", int),
-            (cls.offensive_war_count, "offensive_wars_count", int),
-            (cls.defensive_war_count, "defensive_wars_count", int),
             (cls.alliance, "alliance_id", int | None),
             (cls.alliance_position, "alliance_position_id", int | None),
         ]

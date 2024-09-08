@@ -131,7 +131,11 @@ class Developer(commands.Cog):
 
         # logger.info("Received %s %s with id %s", model, event, data["id"])
 
-        logger.info("%s", data)
+        # logger.info("%s", data)
+
+        nation: Nation = Nation.from_api_v3(data)  # type: ignore
+
+        logger.info("%s", nation)  # type: ignore
 
         # nation = await Nation.objects().where(Nation.id == data["id"]).first()
 
