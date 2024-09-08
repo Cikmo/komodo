@@ -1,6 +1,10 @@
 # This schema was originally downloaded from the playground at https://api.politicsandwar.com/graphql-playground
 # however, it has been modified to include proper nullability, and also remove deprecated fields.
 
+### CUSTOM SCALARS FOR KOMODO
+scalar IntID # CUSTOM: Need this to convert the ID to an integer
+###
+
 type Query {
   me: ApiKeyDetails
   treasures: [Treasure]
@@ -346,16 +350,16 @@ type ApiKeyDetails {
 
 type Nation {
   # ID of the nation
-  id: ID!
+  id: IntID!
 
   # ID of the alliance the nation is currently in (returns 0 if None)
-  alliance_id: ID
+  alliance_id: IntID
 
   # Enumeration representing the position of the nation in their alliance ('NOALLIANCE', 'APPLICANT', 'MEMBER', 'OFFICER', 'HEIR', or 'LEADER')
   alliance_position: AlliancePositionEnum!
 
   # ID of the nation's position in their alliance
-  alliance_position_id: ID
+  alliance_position_id: IntID
 
   # The nation's alliance position
   alliance_position_info: AlliancePosition!

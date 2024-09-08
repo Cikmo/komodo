@@ -133,7 +133,6 @@ class Client(AsyncBaseClient):
               economic_policy
               social_policy
               government_type
-              credits_redeemed_this_month
               alliance_join_date
             }
 

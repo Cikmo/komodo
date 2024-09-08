@@ -54,3 +54,8 @@ type = "pydantic.AwareDatetime"
 
 [tool.ariadne-codegen.scalars.Date]
 type = "datetime.date"
+
+[tool.ariadne-codegen.scalars.IntID]
+type = "int"
+# serialize = "int"
+# parse = "str"

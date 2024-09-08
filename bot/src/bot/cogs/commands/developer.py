@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from timeit import default_timer
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Coroutine, Self
+from typing import TYPE_CHECKING, Any, Awaitable, Self
 
 from pydantic import BaseModel
 
@@ -18,6 +18,7 @@ from src.database.tables.pnw import City, Nation
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
+from src.pnw.api_v3 import SubscriptionNationFields
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
 
 if TYPE_CHECKING:
@@ -115,29 +116,27 @@ class Developer(commands.Cog):
     async def subscribe(
         self,
         ctx: commands.Context[Bot],
-        model: str,
-        event: str,
     ):
         """Test command."""
-        model_enum = SubscriptionModel(model)
-        event__enum = SubscriptionEvent(event)
-
-        callback: Callable[[Any], Coroutine[Any, Any, Any]] = (
-            lambda data: self._callback(model_enum, event__enum, data)
+        await self.bot.pnw.subscriptions.subscribe(
+            SubscriptionModel.NATION,
+            SubscriptionEvent.UPDATE,
+            [self.nation_update_callback],
         )
 
-        await self.bot.pnw.subscriptions.subscribe(model_enum, event__enum, [callback])
+        await ctx.reply("Subscribed to nation updates.")
 
-        await ctx.reply(f"Subscribed to {model_enum.value} {event__enum.value}.")
+    async def nation_update_callback(self, data: SubscriptionNationFields):
+        """Callback for nation updates."""
 
-    async def _callback(
-        self, _model: SubscriptionModel, _event: SubscriptionEvent, data: Any
-    ):
+        # logger.info("Received %s %s with id %s", model, event, data["id"])
 
-        nation = await Nation.objects().where(Nation.id == data["id"]).first()
+        logger.info("%s", data)
 
-        if not nation:
-            return
+        # nation = await Nation.objects().where(Nation.id == data["id"]).first()
+
+        # if not nation:
+        #    return
 
     @dev.command()
     async def debugclose(
@@ -282,7 +281,7 @@ class Developer(commands.Cog):
         resource_amount[resource.lower()] = amount
 
         await self.bot.pnw.v3.mutation_bank_withdraw(
-            receiver=nation.id, receiver_type=1, note=note, **resource_amount
+            receiver=str(nation.id), receiver_type=1, note=note, **resource_amount
         )
 
         await ctx.reply(
@@ -328,3 +327,114 @@ class Developer(commands.Cog):
 async def setup(bot: Bot):
     """Called as extension is loaded"""
     await bot.add_cog(Developer(bot))
+
+
+# {
+#     "id": 642709,
+#     "alliance_id": 0,
+#     "alliance_position": "NOALLIANCE",
+#     "alliance_position_id": 0,
+#     "nation_name": "Dytopia",
+#     "leader_name": "Josh Finder",
+#     "continent": "eu",
+#     "war_policy": "BLITZKRIEG",
+#     "domestic_policy": "MANIFEST_DESTINY",
+#     "war_policy_turns": 60,
+#     "domestic_policy_turns": 0,
+#     "color": "beige",
+#     "num_cities": 1,
+#     "score": 10.5,
+#     "update_tz": None,
+#     "population": 2000,
+#     "flag": "https://politicsandwar.com/uploads/6bc661e71a61b3a7a9f4f5bba314137d9d66de701000x599804.png",
+#     "vacation_mode_turns": 0,
+#     "beige_turns": 168,
+#     "espionage_available": True,
+#     "date": "2024-09-08T17:03:16+00:00",
+#     "soldiers": 0,
+#     "tanks": 0,
+#     "aircraft": 0,
+#     "ships": 0,
+#     "missiles": 0,
+#     "nukes": 0,
+#     "spies": 0,
+#     "discord": "",
+#     "turns_since_last_city": 121,
+#     "turns_since_last_project": 121,
+#     "money": None,
+#     "coal": None,
+#     "oil": None,
+#     "uranium": None,
+#     "iron": None,
+#     "bauxite": None,
+#     "lead": None,
+#     "gasoline": None,
+#     "munitions": None,
+#     "steel": None,
+#     "aluminum": None,
+#     "food": None,
+#     "projects": 0,
+#     "iron_works": 0,
+#     "bauxite_works": 0,
+#     "arms_stockpile": 0,
+#     "emergency_gasoline_reserve": 0,
+#     "mass_irrigation": 0,
+#     "international_trade_center": 0,
+#     "missile_launch_pad": 0,
+#     "nuclear_research_facility": 0,
+#     "iron_dome": 0,
+#     "vital_defense_system": 0,
+#     "central_intelligence_agency": 0,
+#     "center_for_civil_engineering": 0,
+#     "propaganda_bureau": 0,
+#     "uranium_enrichment_program": 0,
+#     "urban_planning": 0,
+#     "advanced_urban_planning": 0,
+#     "space_program": 0,
+#     "spy_satellite": 0,
+#     "moon_landing": 0,
+#     "moon_landing_date": None,
+#     "pirate_economy": 0,
+#     "recycling_initiative": 0,
+#     "telecommunications_satellite": 0,
+#     "green_technologies": 0,
+#     "arable_land_agency": 0,
+#     "clinical_research_center": 0,
+#     "specialized_police_training_program": 0,
+#     "advanced_engineering_corps": 0,
+#     "government_support_agency": 0,
+#     "research_and_development_center": 0,
+#     "resource_production_center": 0,
+#     "wars_won": 0,
+#     "wars_lost": 0,
+#     "tax_id": 0,
+#     "alliance_seniority": 0,
+#     "gross_national_income": 0.0,
+#     "gross_domestic_product": 1,
+#     "soldier_casualties": 0,
+#     "soldier_kills": 0,
+#     "tank_casualties": 0,
+#     "tank_kills": 0,
+#     "aircraft_casualties": 0,
+#     "aircraft_kills": 0,
+#     "ship_casualties": 0,
+#     "ship_kills": 0,
+#     "missile_casualties": 0,
+#     "missile_kills": 0,
+#     "nuke_casualties": 0,
+#     "nuke_kills": 0,
+#     "spy_casualties": None,
+#     "spy_kills": None,
+#     "money_looted": 0.0,
+#     "metropolitan_planning": 0,
+#     "military_salvage": 0,
+#     "fallout_shelter": 0,
+#     "bureau_of_domestic_affairs": 0,
+#     "advanced_pirate_economy": 0,
+#     "mars_landing": 0,
+#     "mars_landing_date": None,
+#     "surveillance_network": 0,
+#     "guiding_satellite": 0,
+#     "nuclear_launch_facility": 0,
+#     "project_bits": "0",
+# }

@@ -2,9 +2,9 @@
 # Source: resources/queries.graphql
 
 from datetime import date
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BeforeValidator, Field
 
 from .base_model import BaseModel
 from .enums import (
@@ -90,10 +90,10 @@ class CityFields(BaseModel):
 
 
 class NationFields(BaseModel):
-    id: str
-    alliance_id: Optional[str]
+    id: Annotated[int, BeforeValidator(str)]
+    alliance_id: Optional[Annotated[int, BeforeValidator(str)]]
     alliance_obj: Optional["NationFieldsAllianceObj"]
-    alliance_position_id: Optional[str]
+    alliance_position_id: Optional[Annotated[int, BeforeValidator(str)]]
     nation_name: str
     leader_name: str
     continent: str
@@ -159,7 +159,6 @@ class NationFields(BaseModel):
     economic_policy: EconomicPolicy
     social_policy: SocialPolicy
     government_type: GovernmentType
-    credits_redeemed_this_month: Optional[int]
     alliance_join_date: Optional[AwareDatetime]
 
 
@@ -170,6 +169,48 @@ class NationFieldsAllianceObj(BaseModel):
 class PaginatorFields(BaseModel):
     count: int
     has_more_pages: bool = Field(alias="hasMorePages")
+
+
+class SubscriptionAccountFields(BaseModel):
+    id: Annotated[int, BeforeValidator(str)]
+    last_active: AwareDatetime
+    discord_id: Optional[str]
+
+
+class SubscriptionNationFields(BaseModel):
+    id: Annotated[int, BeforeValidator(str)]
+    alliance_id: Optional[Annotated[int, BeforeValidator(str)]]
+    alliance_position_id: Optional[Annotated[int, BeforeValidator(str)]]
+    nation_name: str
+    leader_name: str
+    continent: str
+    war_policy: WarPolicy
+    war_policy_turns: int
+    domestic_policy: DomesticPolicy
+    domestic_policy_turns: int
+    color: str
+    num_cities: int
+    score: float
+    update_tz: Optional[float]
+    population: int
+    flag: str
+    vacation_mode_turns: int
+    beige_turns: int
+    espionage_available: bool
+    date: AwareDatetime
+    soldiers: int
+    tanks: int
+    aircraft: int
+    ships: int
+    missiles: int
+    nukes: int
+    spies: int
+    turns_since_last_city: int
+    turns_since_last_project: int
+    projects: int
+    project_bits: str
+    wars_won: int
+    wars_lost: int
 
 
 class WarFields(BaseModel):
@@ -226,4 +267,6 @@ AllianceFields.model_rebuild()
 CityFields.model_rebuild()
 NationFields.model_rebuild()
 PaginatorFields.model_rebuild()
+SubscriptionAccountFields.model_rebuild()
+SubscriptionNationFields.model_rebuild()
 WarFields.model_rebuild()

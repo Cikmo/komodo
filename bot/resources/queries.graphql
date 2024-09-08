@@ -224,7 +224,6 @@ fragment nationFields on Nation {
   economic_policy
   social_policy
   government_type
-  credits_redeemed_this_month
   alliance_join_date
 }
 
@@ -345,4 +344,49 @@ fragment warFields on War {
   def_nukes_used
   att_infra_destroyed_value
   def_infra_destroyed_value
+}
+
+### Subscriptions
+
+fragment subscriptionAccountFields on Nation {
+  id
+  last_active
+  discord_id
+}
+
+fragment subscriptionNationFields on Nation {
+  id # yes
+  alliance_id # yes
+  alliance_position_id # yes
+  nation_name # yes
+  leader_name # yes
+  continent # yes
+  war_policy # yes
+  war_policy_turns # yes
+  domestic_policy # yes
+  domestic_policy_turns # yes
+  color # yes
+  num_cities # yes
+  score # yes
+  update_tz # yes
+  population # yes
+  flag # yes
+  vacation_mode_turns # yes
+  beige_turns # yes
+  espionage_available # yes
+  date # yes
+  soldiers # yes
+  tanks # yes
+  aircraft # yes
+  ships # yes
+  missiles # yes
+  nukes # yes
+  spies # yes
+  turns_since_last_city # yes
+  turns_since_last_project # yes
+  projects # yes
+  project_bits # yes
+  wars_won # yes
+  wars_lost # yes
+  #tax_id
 }

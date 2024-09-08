@@ -6,15 +6,18 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum, auto
-from typing import Any, Iterable
+from typing import Any, Generic, Iterable, Literal, TypeVar, overload
 
 import aiohttp
 from pydantic import BaseModel
 
+from ..api_v3 import SubscriptionAccountFields, SubscriptionNationFields
 from .asyncpusher import Channel, Pusher
 from .asyncpusher.types import Callback
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=SubscriptionAccountFields | SubscriptionNationFields)
 
 
 class MetadataTime(BaseModel):
@@ -58,6 +61,7 @@ class SubscriptionModel(StrEnum):
 
     NATION = auto()
     ACCOUNT = auto()
+    CITY = auto()
 
 
 class SubscriptionEvent(StrEnum):
@@ -68,7 +72,7 @@ class SubscriptionEvent(StrEnum):
     DELETE = auto()
 
 
-class Subscription:
+class Subscription(Generic[T]):
     """
     Represents a subscription to a PnW event.
     """
@@ -79,14 +83,26 @@ class Subscription:
         pnw_api_key: str,
         model: SubscriptionModel,
         event: SubscriptionEvent,
+        data_model: type[T],
         callbacks: list[Callback],
     ):
+        """Create a new subscription.
+
+        Args:
+            pusher: The Pusher object.
+            pnw_api_key: The PnW API key.
+            model: The model to subscribe to.
+            event:
+            data_model: A Pydantic model representing the data that will be passed to the callbacks.
+            callbacks: The callbacks to call when the event is triggered.
+        """
         self._pusher = pusher
         self._pnw_api_key = pnw_api_key
 
         self.model = model
         self.event = event
         self.callbacks = callbacks
+        self.data_model = data_model
 
         self._channel: Channel | None = None
 
@@ -146,13 +162,13 @@ class Subscription:
 
         self._channel = None
 
-    async def _callback(self, data: Any):
+    async def _callback(self, data: dict[str, Any] | list[dict[str, Any]]):
         for callback in self.callbacks:
             if isinstance(data, list):
                 for item in data:
-                    await callback(item)
+                    await callback(self.data_model(**item))
             else:
-                await callback(data)
+                await callback(self.data_model(**data))
 
     async def _handle_metadata(self, data: Any):
         new_metadata = MetadataEvent(**data)
@@ -183,11 +199,25 @@ class Subscription:
 
         self._cached_metadata = new_metadata
 
-    async def _get_channel(self, since: tuple[int, int] | None = None) -> str | None:
-        """Get channel name."""
+    async def _get_channel(
+        self,
+        since: tuple[int, int] | None = None,
+    ) -> str | None:
+        """Get the channel name for the subscription.
+
+        Args:
+            fields: If provided, the fields to include in the returned data. Defaults to all fields.
+            since: If provided, the time to get events since. Max 10 minutes.
+
+        Returns:
+            The channel name if successful. None otherwise.
+        """
+        # get the field names from the BaseModel as a comma-separated string
+
         url = (
             f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{self.model.value}/{self.event.value}"
             f"?api_key={self._pnw_api_key}&metadata=true"
+            f"&include={','.join(self.data_model.model_fields.keys())}"
         )
         if since:
             url += f"&since={since[0]}&nanos={since[1]}"
@@ -220,14 +250,38 @@ class Subscriptions:
         )
         self._pnw_api_key = pnw_api_key
 
-        self.subscriptions: dict[str, Subscription] = {}
+        self.subscriptions: dict[str, Subscription[Any]] = {}
+
+    @overload
+    async def subscribe(
+        self,
+        model: Literal[SubscriptionModel.NATION],
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[SubscriptionNationFields]: ...
+
+    @overload
+    async def subscribe(
+        self,
+        model: Literal[SubscriptionModel.ACCOUNT],
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[SubscriptionAccountFields]: ...
+
+    @overload
+    async def subscribe(
+        self,
+        model: SubscriptionModel,
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[Any]: ...
 
     async def subscribe(
         self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
         callbacks: Iterable[Callback],
-    ) -> Subscription:
+    ) -> Subscription[Any]:
         """Subscribe to a PnW event.
 
         Args:
@@ -246,8 +300,16 @@ class Subscriptions:
             )
             return self.subscriptions[f"{model.value}_{event.value}"]
 
+        match model:
+            case SubscriptionModel.NATION:
+                data_model = SubscriptionNationFields
+            case SubscriptionModel.ACCOUNT:
+                data_model = SubscriptionAccountFields
+            case _:
+                raise NotImplementedError(f"Model {model} not implemented")
+
         subscription = Subscription(
-            self._pusher, self._pnw_api_key, model, event, list(callbacks)
+            self._pusher, self._pnw_api_key, model, event, data_model, list(callbacks)
         )
         self.subscriptions[f"{model.value}_{event.value}"] = subscription
 
@@ -255,7 +317,7 @@ class Subscriptions:
 
         return subscription
 
-    async def unsubscribe(self, subscription: Subscription) -> None:
+    async def unsubscribe(self, subscription: Subscription[Any]) -> None:
         """Unsubscribe from a PnW event.
 
         Args:
@@ -275,7 +337,7 @@ class Subscriptions:
 
     def get(
         self, model: SubscriptionModel, event: SubscriptionEvent
-    ) -> Subscription | None:
+    ) -> Subscription[Any] | None:
         """Get a subscription by name and event.
 
         Args:

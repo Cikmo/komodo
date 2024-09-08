@@ -73,6 +73,8 @@ from .fragments import (
     NationFields,
     NationFieldsAllianceObj,
     PaginatorFields,
+    SubscriptionAccountFields,
+    SubscriptionNationFields,
     WarFields,
 )
 from .get_alliances import (
@@ -254,6 +256,8 @@ __all__ = [
     "Resources",
     "SocialPolicy",
     "SortOrder",
+    "SubscriptionAccountFields",
+    "SubscriptionNationFields",
     "TradeType",
     "Upload",
     "WarActivity",

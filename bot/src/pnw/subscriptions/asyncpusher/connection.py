@@ -161,8 +161,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if event.name in self._event_callbacks:
             for callback, (args, kwargs) in self._event_callbacks[event.name].items():
                 try:
-                    asyncio.create_task(callback(event.data, *args, **kwargs))
-                    # await callback(event.data, *args, **kwargs)
+                    # asyncio.create_task(callback(event.data, *args, **kwargs))
+                    await callback(event.data, *args, **kwargs)
                 except Exception:  # type: ignore # pylint: disable=broad-except
                     self._log.exception(f"Exception in callback: {event.data}")
             return
