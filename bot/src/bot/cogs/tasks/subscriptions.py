@@ -4,10 +4,11 @@ Handles PnW subscriptions
 
 import asyncio
 from logging import getLogger
-from typing import Any
+from typing import Any, cast
 
 from discord.ext import commands
 from src.bot import Bot
+from src.database.tables.pnw import Nation
 from src.pnw.api_v3 import SubscriptionNationFields
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
 
@@ -70,7 +71,46 @@ class Subscriptions(commands.Cog):
 
     async def on_nation_update(self, data: SubscriptionNationFields):
         """Called when a nation is updated."""
-        logger.info("Nation updated: %s", data.id)
+
+        # # first, check if alliance exists in db
+        # if data.alliance_id is None or data.alliance_id == 0:
+        #     # call the on_alliance_create method, but first get the alliance data
+        #     alliance_data = await self.bot.pnw.get_alliance(data.alliance_id)
+        #     await self.on_alliance_create(alliance_data)
+
+        nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+
+        nation_in_db = await Nation.objects().where(Nation.id == nation.id).first()
+
+        if not nation_in_db:
+            await self.on_nation_create(data)
+            return
+
+        # find the differences between the two nations
+        nation_fields = nation.to_dict()
+        nation_in_db_fields = nation_in_db.to_dict()
+
+        differences = {
+            k: v for k, v in nation_fields.items() if nation_in_db_fields.get(k) != v
+        }
+
+        if not differences:
+            return
+
+        nation_in_db._exists_in_db = True  # type: ignore # pylint: disable=protected-access
+        nation_in_db.save()
+
+        for field, value in differences.items():
+            logger.info(
+                "Nation %s updated: %s -> %s",
+                field,
+                nation_in_db_fields.get(field),
+                value,
+            )
+            self.bot.dispatch(
+                f"nation_{field}_update",
+                nation_in_db,
+            )
 
     async def on_nation_delete(self, data: SubscriptionNationFields):
         """Called when a nation is deleted."""
