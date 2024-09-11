@@ -65,18 +65,8 @@ class Subscriptions(commands.Cog):
 
     ### Callbacks ###
 
-    async def on_nation_create(self, data: SubscriptionNationFields):
-        """Called when a nation is created."""
-        logger.info("Nation created: %s", data.id)
-
     async def on_nation_update(self, data: SubscriptionNationFields):
         """Called when a nation is updated."""
-
-        # # first, check if alliance exists in db
-        # if data.alliance_id is None or data.alliance_id == 0:
-        #     # call the on_alliance_create method, but first get the alliance data
-        #     alliance_data = await self.bot.pnw.get_alliance(data.alliance_id)
-        #     await self.on_alliance_create(alliance_data)
 
         nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
 
@@ -111,6 +101,16 @@ class Subscriptions(commands.Cog):
                 f"nation_{field}_update",
                 nation_in_db,
             )
+
+    async def on_nation_create(self, data: SubscriptionNationFields):
+        """Called when a nation is created."""
+        nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+
+        try:
+            await nation.save()
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error saving nation: %s", e)
+            return
 
     async def on_nation_delete(self, data: SubscriptionNationFields):
         """Called when a nation is deleted."""
