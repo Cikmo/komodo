@@ -14,7 +14,7 @@ from pydantic import BaseModel
 import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
-from src.database.tables.pnw import City, Nation
+from src.database.tables.pnw import Nation
 from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
@@ -213,18 +213,18 @@ class Developer(commands.Cog):
 
         await ctx.reply(f"Your nation is {nation.name}.")
 
-    @dev.command()
-    async def cities(self, ctx: commands.Context[Bot]):
-        """Get all cities from norlandia and add to database."""
-        cities_api = (await self.bot.pnw.v3.get_cities(nation_id=[239259])).cities.data
+    # @dev.command()
+    # async def cities(self, ctx: commands.Context[Bot]):
+    #     """Get all cities from norlandia and add to database."""
+    #     cities_api = (await self.bot.pnw.v3.get_cities(nation_id=[239259])).cities.data
 
-        cities = City.from_api_v3(cities_api)
+    #     cities = City.from_api_v3(cities_api)
 
-        inserted = await City.insert(
-            *cities,
-        )
+    #     inserted = await City.insert(
+    #         *cities,
+    #     )
 
-        await ctx.reply(f"Added {len(inserted)} cities to the database.")
+    #     await ctx.reply(f"Added {len(inserted)} cities to the database.")
 
     # @dev.command()
     # async def create(self, ctx: commands.Context[Bot], nation_name: str):
