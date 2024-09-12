@@ -1,6 +1,9 @@
 [tool.poetry]
 name = "komodo"
-package-mode = false
+authors = ["christian2094"]
+version = "0.1.0"
+description = "A discord bot for the game Politics and War"
+packages = [{ include = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
