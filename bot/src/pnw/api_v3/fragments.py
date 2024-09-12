@@ -2,9 +2,9 @@
 # Source: resources/queries.graphql
 
 from datetime import date
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BeforeValidator, Field
 
 from .base_model import BaseModel
 from .enums import (
@@ -90,10 +90,10 @@ class CityFields(BaseModel):
 
 
 class NationFields(BaseModel):
-    id: int
-    alliance_id: Optional[int]
+    id: Annotated[int, BeforeValidator(int)]
+    alliance_id: Optional[Annotated[int, BeforeValidator(int)]]
     alliance_obj: Optional["NationFieldsAllianceObj"]
-    alliance_position_id: Optional[int]
+    alliance_position_id: Optional[Annotated[int, BeforeValidator(int)]]
     nation_name: str
     leader_name: str
     continent: str
@@ -172,15 +172,15 @@ class PaginatorFields(BaseModel):
 
 
 class SubscriptionAccountFields(BaseModel):
-    id: int
+    id: Annotated[int, BeforeValidator(int)]
     last_active: AwareDatetime
     discord_id: Optional[str]
 
 
 class SubscriptionNationFields(BaseModel):
-    id: int
-    alliance_id: Optional[int]
-    alliance_position_id: Optional[int]
+    id: Annotated[int, BeforeValidator(int)]
+    alliance_id: Optional[Annotated[int, BeforeValidator(int)]]
+    alliance_position_id: Optional[Annotated[int, BeforeValidator(int)]]
     nation_name: str
     leader_name: str
     continent: str

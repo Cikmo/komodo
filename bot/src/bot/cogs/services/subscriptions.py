@@ -21,7 +21,8 @@ class Subscriptions(commands.Cog):
 
     Subscribes to all events for the models specified in `models_to_subscribe_to`.
 
-    Callbacks are named in the format `on_{model}_{event}` where `model` is the model name and `event` is the event name.
+    Callbacks are named in the format `on_{model}_{event}` where `model` is the
+    model name and `event` is the event name.
     """
 
     def __init__(self, bot: Bot):

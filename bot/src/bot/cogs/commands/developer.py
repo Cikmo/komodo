@@ -150,8 +150,6 @@ class Developer(commands.Cog):
         if not nation_in_db:
             return await self.nation_create_callback(data)
 
-        # TODO: Figure out how to efficiently check what fields have changed
-
         new_nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
         new_nation._exists_in_db = True  # type: ignore # pylint: disable=protected-access
 

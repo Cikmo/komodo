@@ -3,6 +3,7 @@
 
 ### CUSTOM SCALARS FOR KOMODO
 scalar IntID # CUSTOM: Need this to convert the ID to an integer
+scalar Int
 ###
 
 type Query {

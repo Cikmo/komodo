@@ -58,5 +58,5 @@ type = "datetime.date"
 
 [tool.ariadne-codegen.scalars.IntID]
 type = "int"
-# serialize = "int"
-# parse = "str"
+serialize = "str"
+parse = "int"
