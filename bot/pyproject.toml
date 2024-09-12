@@ -46,6 +46,7 @@ schema_path = "resources/pnw_api_schema.graphql"
 queries_path = "resources/queries.graphql"
 target_package_name = "api_v3"
 target_package_path = "src/pnw"
+plugins = ["src.pnw.ariadne_plugin.KomodoAriandePlugin"]
 
 [tool.ariadne-codegen.scalars.DateTimeAuto]
 type = "pydantic.AwareDatetime"
