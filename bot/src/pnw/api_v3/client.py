@@ -63,10 +63,7 @@ class Client(AsyncBaseClient):
 
             fragment nationFields on Nation {
               id
-              alliance_id
-              alliance_obj: alliance {
-                id
-              }
+              alliance: alliance_id
               alliance_position_id
               nation_name
               leader_name

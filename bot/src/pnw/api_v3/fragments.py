@@ -90,10 +90,13 @@ class CityFields(BaseModel):
 
 
 class NationFields(BaseModel):
-    id: Annotated[int, BeforeValidator(int)]
-    alliance_id: Optional[Annotated[int, BeforeValidator(int)]]
-    alliance_obj: Optional["NationFieldsAllianceObj"]
-    alliance_position_id: Optional[Annotated[int, BeforeValidator(int)]]
+    id: Annotated[int, BeforeValidator(lambda x: int(x) if x != "0" else None)]
+    alliance: Annotated[
+        int, BeforeValidator(lambda x: int(x) if x != "0" else None)
+    ] = Field(alias="alliance_id")
+    alliance_position_id: Annotated[
+        int, BeforeValidator(lambda x: int(x) if x != "0" else None)
+    ]
     nation_name: str
     leader_name: str
     continent: str
@@ -162,25 +165,25 @@ class NationFields(BaseModel):
     alliance_join_date: Optional[AwareDatetime]
 
 
-class NationFieldsAllianceObj(BaseModel):
-    id: str
-
-
 class PaginatorFields(BaseModel):
     count: int
     has_more_pages: bool = Field(alias="hasMorePages")
 
 
 class SubscriptionAccountFields(BaseModel):
-    id: Annotated[int, BeforeValidator(int)]
+    id: Annotated[int, BeforeValidator(lambda x: int(x) if x != "0" else None)]
     last_active: AwareDatetime
     discord_id: Optional[str]
 
 
 class SubscriptionNationFields(BaseModel):
-    id: Annotated[int, BeforeValidator(int)]
-    alliance_id: Optional[Annotated[int, BeforeValidator(int)]]
-    alliance_position_id: Optional[Annotated[int, BeforeValidator(int)]]
+    id: Annotated[int, BeforeValidator(lambda x: int(x) if x != "0" else None)]
+    alliance: Annotated[
+        int, BeforeValidator(lambda x: int(x) if x != "0" else None)
+    ] = Field(alias="alliance_id")
+    alliance_position_id: Annotated[
+        int, BeforeValidator(lambda x: int(x) if x != "0" else None)
+    ]
     nation_name: str
     leader_name: str
     continent: str

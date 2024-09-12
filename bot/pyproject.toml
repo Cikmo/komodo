@@ -62,5 +62,5 @@ type = "datetime.date"
 
 [tool.ariadne-codegen.scalars.IntID]
 type = "int"
-serialize = "str"
-parse = "int"
+serialize = "lambda x: str(x) if x is not None else '0'"
+parse = "lambda x: int(x) if x != '0' else None"

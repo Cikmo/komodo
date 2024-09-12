@@ -212,12 +212,17 @@ class Subscription(Generic[T]):
         Returns:
             The channel name if successful. None otherwise.
         """
-        # get the field names from the BaseModel as a comma-separated string
+        # get the field names (or alias if it exists) from the BaseModel as a comma-separated string
+
+        fields = ",".join(
+            x.alias if x.alias else field_name
+            for field_name, x in self.data_model.model_fields.items()
+        )
 
         url = (
             f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{self.model.value}/{self.event.value}"
             f"?api_key={self._pnw_api_key}&metadata=true"
-            f"&include={','.join(self.data_model.model_fields.keys())}"
+            f"&include={fields}"
         )
         if since:
             url += f"&since={since[0]}&nanos={since[1]}"

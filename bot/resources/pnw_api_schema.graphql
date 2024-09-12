@@ -3,7 +3,6 @@
 
 ### CUSTOM SCALARS FOR KOMODO
 scalar IntID # CUSTOM: Need this to convert the ID to an integer
-scalar Int
 ###
 
 type Query {
@@ -354,13 +353,13 @@ type Nation {
   id: IntID!
 
   # ID of the alliance the nation is currently in (returns 0 if None)
-  alliance_id: IntID
+  alliance_id: IntID!
 
   # Enumeration representing the position of the nation in their alliance ('NOALLIANCE', 'APPLICANT', 'MEMBER', 'OFFICER', 'HEIR', or 'LEADER')
   alliance_position: AlliancePositionEnum!
 
   # ID of the nation's position in their alliance
-  alliance_position_id: IntID
+  alliance_position_id: IntID!
 
   # The nation's alliance position
   alliance_position_info: AlliancePosition!
