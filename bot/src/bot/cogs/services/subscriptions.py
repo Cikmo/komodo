@@ -2,10 +2,9 @@
 Handles PnW subscriptions
 """
 
-import asyncio
 from asyncio import Semaphore
 from logging import getLogger
-from typing import Any, cast
+from typing import cast
 
 from discord.ext import commands
 from src.bot import Bot
@@ -42,8 +41,6 @@ class Subscriptions(commands.Cog):
 
     async def initialize_subscriptions(self):
         """Subscribes to all events for the models specified in `models_to_subscribe_to`."""
-        tasks: list[asyncio.Task[Any]] = []
-
         for model in self.models_to_subscribe_to:
             for event in SubscriptionEvent:
                 method_name = f"on_{model}_{event}"
