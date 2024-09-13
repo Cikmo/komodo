@@ -482,7 +482,7 @@ type Nation {
   discord: String!
 
   # String representing the numerical ID of the nation's Discord
-  discord_id: String
+  discord_id: Int
 
   # List of treasures the nation has
   treasures: [Treasure!]!

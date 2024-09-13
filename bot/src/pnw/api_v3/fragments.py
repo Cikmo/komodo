@@ -123,7 +123,7 @@ class NationFields(BaseModel):
     nukes: int
     spies: int
     discord: str
-    discord_id: Optional[str]
+    discord_id: Optional[int]
     turns_since_last_city: int
     turns_since_last_project: int
     projects: int
@@ -173,7 +173,7 @@ class PaginatorFields(BaseModel):
 class SubscriptionAccountFields(BaseModel):
     id: int
     last_active: AwareDatetime
-    discord_id: Optional[str]
+    discord_id: Optional[int]
 
 
 class SubscriptionNationFields(BaseModel):

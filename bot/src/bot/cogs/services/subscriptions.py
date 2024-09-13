@@ -134,7 +134,7 @@ class Subscriptions(commands.Cog):
             return
 
         old_discord_id = nation.discord_id
-        new_discord_id = int(data.discord_id) if data.discord_id else None
+        new_discord_id = data.discord_id
 
         nation.last_active = data.last_active
         nation.discord_id = new_discord_id
