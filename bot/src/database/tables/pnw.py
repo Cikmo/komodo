@@ -9,6 +9,7 @@ from datetime import datetime
 from piccolo.columns import (
     BigInt,
     Boolean,
+    DoublePrecision,
     ForeignKey,
     Integer,
     OnDelete,
@@ -118,8 +119,8 @@ class Nation(PnwBaseTable[NationFields]):
     domestic_policy_turns = Integer()
     num_cities = Integer()
     color = Text(choices=Color)
-    score = Real()
-    update_timezone = Real(null=True, default=None)  # API name: update_tz
+    score = DoublePrecision()
+    update_timezone = DoublePrecision(null=True, default=None)  # API name: update_tz
     population = Integer()
     flag_url = Text()  # API name: flag
     vacation_mode_turns = Integer()
