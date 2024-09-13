@@ -101,14 +101,14 @@ class Subscriptions(commands.Cog):
 
     async def on_nation_create(self, data: SubscriptionNationFields):
         """Called when a nation is created."""
-        nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
-
         nation_in_db = (
-            await Nation.select(Nation.id).where(Nation.id == nation.id).first()
+            await Nation.select(Nation.id).where(Nation.id == data.id).first()
         )
 
         if nation_in_db:
             return
+
+        nation = Nation(**data.model_dump())
 
         try:
             await nation.save()
