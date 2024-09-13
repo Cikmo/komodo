@@ -8,7 +8,7 @@ from typing import cast
 from discord.ext import commands
 from src.bot import Bot
 from src.database.tables.pnw import Nation
-from src.pnw.api_v3 import SubscriptionNationFields
+from src.pnw.api_v3 import SubscriptionAccountFields, SubscriptionNationFields
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
 
 logger = getLogger(__name__)
@@ -29,6 +29,7 @@ class Subscriptions(commands.Cog):
 
         self.models_to_subscribe_to = [
             SubscriptionModel.NATION,
+            SubscriptionModel.ACCOUNT,
         ]
 
     @commands.Cog.listener()
@@ -60,31 +61,33 @@ class Subscriptions(commands.Cog):
     async def on_nation_update(self, data: SubscriptionNationFields):
         """Called when a nation is updated."""
 
-        nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+        # nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
 
-        nation_in_db = await Nation.objects().where(Nation.id == nation.id).first()
+        nation_in_db = await Nation.objects().where(Nation.id == data.id).first()
 
         if not nation_in_db:
             await self.on_nation_create(data)
             return
 
         # find the differences between the two nations
-        nation_fields = nation.to_dict()
         nation_in_db_fields = nation_in_db.to_dict()
+        nation_update_fields = data.model_dump()
 
         differences = {
-            k: v for k, v in nation_fields.items() if nation_in_db_fields.get(k) != v
+            k: v
+            for k, v in nation_update_fields.items()
+            if nation_in_db_fields.get(k) != v
         }
 
         if not differences:
             return
 
-        nation._exists_in_db = True  # type: ignore # pylint: disable=protected-access
-        await nation.save()
+        await Nation.update(**differences).where(Nation.id == data.id)
 
         for field, value in differences.items():
             logger.info(
-                "Nation %s updated: %s -> %s",
+                "Nation %s | %s updated: %s -> %s",
+                data.id,
                 field,
                 nation_in_db_fields.get(field),
                 value,
@@ -114,7 +117,41 @@ class Subscriptions(commands.Cog):
 
     async def on_nation_delete(self, data: SubscriptionNationFields):
         """Called when a nation is deleted."""
-        logger.info("Nation deleted: %s", data.id)
+        deleted = await Nation.delete().where(Nation.id == data.id).returning(Nation.id)
+        if deleted:
+            logger.info("Nation deleted: %s", data.id)
+
+    async def on_account_update(self, data: SubscriptionAccountFields):
+        """Called when an account is updated."""
+        # this will add info to a nation. Try a few times to get the nation, with a second between each try.
+        # if no nation is found after 5 tries, give up
+
+        nation = await Nation.objects().where(Nation.id == data.id).first()
+
+        if not nation:
+            return
+
+        old_discord_id = nation.discord_id
+        new_discord_id = int(data.discord_id) if data.discord_id else None
+
+        nation.last_active = data.last_active
+        nation.discord_id = new_discord_id
+
+        await nation.save()
+
+        if old_discord_id != new_discord_id:
+            logger.info(
+                "Account %s updated: discord_id %s -> %s",
+                data.id,
+                old_discord_id,
+                new_discord_id,
+            )
+            self.bot.dispatch(
+                "account_discord_id_update",
+                nation,
+                old_discord_id,
+                new_discord_id,
+            )
 
 
 async def setup(bot: Bot):

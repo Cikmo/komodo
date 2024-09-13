@@ -350,7 +350,7 @@ type ApiKeyDetails {
 
 type Nation {
   # ID of the nation
-  id: IntID!
+  id: Int!
 
   # ID of the alliance the nation is currently in (returns 0 if None)
   alliance_id: IntID!
@@ -708,7 +708,7 @@ type Nation {
   projects: Int!
 
   # String representing the bit sequence of projects the nation has in this order (note: binary is read right to left, so if the nation has ironworks it will be a 1 at the rightmost bit): Ironworks, Bauxiteworks, Arms Stockpile, Emergency Gasoline Reserve, Mass Irrigation, International Trade Center, Missile Launch Pad, Nuclear Research Facility, Iron Dome, Vital Defense System, Central Intelligence Agency, Center for Civil Engineering, Propaganda Bureau, Uranium Enrichment Program, Urban Planning, Advanced Urban Planning, Space Program, Spy Satellite, Moon Landing, Pirate Economy, Recycling Initiative, Telecommunications Satellite, Green Technologies, Arable Land Agency, Clinical Research Center, Specialized Police Training Program, Advanced Engineering Corps, Government Support Agency, Research and Development Center, Activity Center, Metropolitan Planning, Military Salvage, Fallout Shelter, Bureau of Domestic Affairs, Advanced Pirate Economy, Mars Landing, Surveillance Network, Guiding Satellite, Nuclear Launch Facility
-  project_bits: String!
+  project_bits: Int!
 
   # Whether or not the nation has the Ironworks project [deprecated]
   # ironw: Boolean @deprecated(reason: "Use iron_works instead")

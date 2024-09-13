@@ -159,21 +159,6 @@ class Nation(PnwBaseTable[NationFields]):
         """
         return City.objects().where(City.nation == self)
 
-    # @classmethod
-    # def preprocess_api_v3_model(cls, model: NationFields) -> NationFields:
-    #     return model
-
-    # @classmethod
-    # def pydantic_overrides(cls) -> PydanticOverride:
-    #     return [
-    #         (cls.name, "nation_name", str),
-    #         (cls.update_timezone, "update_tz", float | None),
-    #         (cls.flag_url, "flag", str),
-    #         (cls.date_created, "date", datetime),
-    #         (cls.num_projects, "projects", int),
-    #         (cls.alliance_position, "alliance_position_id", int | None),
-    #     ]
-
 
 class City(PnwBaseTable[CityFields]):
     """

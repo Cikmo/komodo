@@ -90,9 +90,7 @@ class CityFields(BaseModel):
 
 
 class NationFields(BaseModel):
-    id: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
-    ]
+    id: int
     alliance: Annotated[
         Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
     ] = Field(alias="alliance_id")
@@ -129,7 +127,7 @@ class NationFields(BaseModel):
     turns_since_last_city: int
     turns_since_last_project: int
     projects: int
-    project_bits: str
+    project_bits: int
     moon_landing_date: Optional[AwareDatetime]
     mars_landing_date: Optional[AwareDatetime]
     wars_won: int
@@ -173,17 +171,13 @@ class PaginatorFields(BaseModel):
 
 
 class SubscriptionAccountFields(BaseModel):
-    id: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
-    ]
+    id: int
     last_active: AwareDatetime
     discord_id: Optional[str]
 
 
 class SubscriptionNationFields(BaseModel):
-    id: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
-    ]
+    id: int
     name: str = Field(alias="nation_name")
     leader_name: str
     alliance_seniority_days: int = Field(alias="alliance_seniority")
@@ -212,7 +206,7 @@ class SubscriptionNationFields(BaseModel):
     turns_since_last_city: int
     turns_since_last_project: int
     num_projects: int = Field(alias="projects")
-    project_bits: str
+    project_bits: int
     wars_won: int
     wars_lost: int
 
