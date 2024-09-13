@@ -60,17 +60,23 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self.state = self.State.IDLE
         self._last_message_time: float | None = None
 
+        self._open_connection_semaphore = asyncio.Semaphore(1)
+
         self.bind("pusher:connection_established", self._handle_connection)
         self.bind("pusher:connection_failed", self._handle_failure)
         self.bind("pusher:error", self._handle_error)
         self.bind("pusher:pong", self._handle_pong)
 
     async def open(self):
-        """Open connection and wait until it is established."""
-        self._loop.create_task(self._run_forever())
+        """Open connection if it's not already open, and wait until it is established."""
+        async with self._open_connection_semaphore:
+            if self.is_connected():
+                return
 
-        while self.state != self.State.CONNECTED:
-            await asyncio.sleep(1)
+            self._loop.create_task(self._run_forever())
+
+            while self.state != self.State.CONNECTED:
+                await asyncio.sleep(1)
 
         if self._use_pusher_ping:
             self._loop.create_task(self._periodic_ping())

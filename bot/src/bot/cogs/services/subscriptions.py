@@ -55,15 +55,9 @@ class Subscriptions(commands.Cog):
                     )
                     continue
 
-                tasks.append(
-                    asyncio.create_task(
-                        self.bot.pnw.subscriptions.subscribe(
-                            model=model, event=event, callbacks=[method]
-                        )
-                    )
+                await self.bot.pnw.subscriptions.subscribe(
+                    model=model, event=event, callbacks=[method]
                 )
-
-        await asyncio.gather(*tasks)
 
         logger.info("Subscribed to all events")
 

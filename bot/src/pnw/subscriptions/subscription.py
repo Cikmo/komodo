@@ -4,6 +4,7 @@ This module contains the Subscription class, which represents a subscription to 
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from enum import StrEnum, auto
 from typing import Any, Generic, Iterable, Literal, TypeVar, overload
@@ -77,6 +78,9 @@ class Subscription(Generic[T]):
     Represents a subscription to a PnW event.
     """
 
+    subscribe_lock = asyncio.Lock()
+    _unsubscribe_lock = asyncio.Lock()
+
     def __init__(
         self,
         pusher: Pusher,
@@ -129,29 +133,29 @@ class Subscription(Generic[T]):
         Returns:
             The subscription object if successful. None otherwise.
         """
-        if self.is_subscribed:
-            return
+        async with self.subscribe_lock:
+            if self.is_subscribed:
+                return
 
-        if not self._pusher.connection.is_connected():
             await self._pusher.connect()
 
-        channel_name = await self._get_channel(since)
+            channel_name = await self._get_channel(since)
 
-        if not channel_name:
-            logger.error(
-                "Could not get channel name for %s %s",
-                self.model.value,
-                self.event.value,
-            )
-            return
+            if not channel_name:
+                logger.error(
+                    "Could not get channel name for %s %s",
+                    self.model.value,
+                    self.event.value,
+                )
+                return
 
-        self._channel = await self._pusher.subscribe(channel_name)
+            self._channel = await self._pusher.subscribe(channel_name)
 
-        for event_name in self._construct_event_names(self.model, self.event):
-            self._channel.bind(event_name, self._callback)
-            self._channel.bind(f"{event_name}_METADATA", self._handle_metadata)
+            for event_name in self._construct_event_names(self.model, self.event):
+                self._channel.bind(event_name, self._callback)
+                self._channel.bind(f"{event_name}_METADATA", self._handle_metadata)
 
-        logger.info("Subscribed to %s %s", self.model, self.event)
+            logger.info("Subscribed to %s %s", self.model, self.event)
 
     async def _unsubscribe(self):
         """Unsubscribe from a model in PnW."""
@@ -160,7 +164,7 @@ class Subscription(Generic[T]):
 
         await self._pusher.unsubscribe(self._channel._name)  # type: ignore # pylint: disable=protected-access
 
-        del self._channel
+        self._channel = None
 
     async def _callback(self, data: dict[str, Any] | list[dict[str, Any]]):
         for callback in self.callbacks:
