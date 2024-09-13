@@ -24,15 +24,24 @@ case "$1" in
 esac
 
 # Check if Poetry is installed
-if ! command -v poetry &> /dev/null
-then
+if ! command -v poetry &> /dev/null; then
     # Poetry is not installed; prompt user to install it and exit.
     echo "Poetry could not be found. Please install it from https://python-poetry.org/docs/#installing-with-the-official-installer"
     exit 1
 fi
 
 # Install the project dependencies using Poetry.
-poetry install
+poetry install --sync
+
+# Check for pending migrations using `piccolo migrations check komodo`
+MIGRATIONS_OUTPUT=$(piccolo migrations check komodo)
+
+if echo "$MIGRATIONS_OUTPUT" | grep -q "| False"; then
+    # If there are pending migrations, migrate the database
+    echo "There are pending migrations. Migrating the database..."
+    piccolo migrations forward komodo
+fi
+
 
 # Execute based on the input mode
 if [ "$1" == "prod" ]; then
