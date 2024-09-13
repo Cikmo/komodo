@@ -3,7 +3,6 @@ Handles PnW subscriptions
 """
 
 from logging import getLogger
-from typing import cast
 
 from discord.ext import commands
 from src.bot import Bot
@@ -101,11 +100,11 @@ class Subscriptions(commands.Cog):
 
     async def on_nation_create(self, data: SubscriptionNationFields):
         """Called when a nation is created."""
-        nation_in_db = (
+        existing_nation = (
             await Nation.select(Nation.id).where(Nation.id == data.id).first()
         )
 
-        if nation_in_db:
+        if existing_nation:
             return
 
         nation = Nation(**data.model_dump())
