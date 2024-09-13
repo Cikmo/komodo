@@ -215,6 +215,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
                 self._log.info("Sending ping")
                 await self.send_ping()
                 await asyncio.sleep(self._pong_timeout)
+            else:
+                await asyncio.sleep(1)
 
     async def _handle_connection(self, data: EventData):
         if not data:
