@@ -355,38 +355,39 @@ fragment subscriptionAccountFields on Nation {
 }
 
 fragment subscriptionNationFields on Nation {
-  id # yes
-  alliance: alliance_id # yes
-  alliance_position_id # yes
-  nation_name # yes
-  leader_name # yes
-  continent # yes
-  war_policy # yes
-  war_policy_turns # yes
-  domestic_policy # yes
-  domestic_policy_turns # yes
-  color # yes
-  num_cities # yes
-  score # yes
-  update_tz # yes
-  population # yes
-  flag # yes
-  vacation_mode_turns # yes
-  beige_turns # yes
-  espionage_available # yes
-  date # yes
-  soldiers # yes
-  tanks # yes
-  aircraft # yes
-  ships # yes
-  missiles # yes
-  nukes # yes
-  spies # yes
-  turns_since_last_city # yes
-  turns_since_last_project # yes
-  projects # yes
-  project_bits # yes
-  wars_won # yes
-  wars_lost # yes
+  id
+  name: nation_name
+  leader_name
+  #alliance: alliance_id
+  #alliance_position: alliance_position_id
+  alliance_seniority_days: alliance_seniority
+  continent
+  war_policy
+  war_policy_turns
+  domestic_policy
+  domestic_policy_turns
+  color
+  num_cities
+  score
+  update_timezone: update_tz
+  population
+  flag_url: flag
+  vacation_mode_turns
+  beige_turns
+  espionage_available
+  date_created: date
+  soldiers
+  tanks
+  aircraft
+  ships
+  missiles
+  nukes
+  spies
+  turns_since_last_city
+  turns_since_last_project
+  num_projects: projects
+  project_bits
+  wars_won
+  wars_lost
   #tax_id
 }

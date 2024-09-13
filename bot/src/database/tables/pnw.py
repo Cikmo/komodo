@@ -141,7 +141,7 @@ class Nation(PnwBaseTable[NationFields]):
     project_bits = BigInt()
     wars_won = Integer()
     wars_lost = Integer()
-    alliance_join_date = Timestamptz(null=True, default=None)
+    alliance_seniority_days = Integer()
 
     alliance = ForeignKey(references=Alliance, on_delete=OnDelete.set_null)
     alliance_position = ForeignKey(
@@ -158,20 +158,20 @@ class Nation(PnwBaseTable[NationFields]):
         """
         return City.objects().where(City.nation == self)
 
-    @classmethod
-    def preprocess_api_v3_model(cls, model: NationFields) -> NationFields:
-        return model
+    # @classmethod
+    # def preprocess_api_v3_model(cls, model: NationFields) -> NationFields:
+    #     return model
 
-    @classmethod
-    def pydantic_overrides(cls) -> PydanticOverride:
-        return [
-            (cls.name, "nation_name", str),
-            (cls.update_timezone, "update_tz", float | None),
-            (cls.flag_url, "flag", str),
-            (cls.date_created, "date", datetime),
-            (cls.num_projects, "projects", int),
-            (cls.alliance_position, "alliance_position_id", int | None),
-        ]
+    # @classmethod
+    # def pydantic_overrides(cls) -> PydanticOverride:
+    #     return [
+    #         (cls.name, "nation_name", str),
+    #         (cls.update_timezone, "update_tz", float | None),
+    #         (cls.flag_url, "flag", str),
+    #         (cls.date_created, "date", datetime),
+    #         (cls.num_projects, "projects", int),
+    #         (cls.alliance_position, "alliance_position_id", int | None),
+    #     ]
 
 
 class City(PnwBaseTable[CityFields]):

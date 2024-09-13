@@ -184,14 +184,9 @@ class SubscriptionNationFields(BaseModel):
     id: Annotated[
         Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
     ]
-    alliance: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
-    ] = Field(alias="alliance_id")
-    alliance_position_id: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
-    ]
-    nation_name: str
+    name: str = Field(alias="nation_name")
     leader_name: str
+    alliance_seniority_days: int = Field(alias="alliance_seniority")
     continent: str
     war_policy: WarPolicy
     war_policy_turns: int
@@ -200,13 +195,13 @@ class SubscriptionNationFields(BaseModel):
     color: str
     num_cities: int
     score: float
-    update_tz: Optional[float]
+    update_timezone: Optional[float] = Field(alias="update_tz")
     population: int
-    flag: str
+    flag_url: str = Field(alias="flag")
     vacation_mode_turns: int
     beige_turns: int
     espionage_available: bool
-    date: AwareDatetime
+    date_created: AwareDatetime = Field(alias="date")
     soldiers: int
     tanks: int
     aircraft: int
@@ -216,7 +211,7 @@ class SubscriptionNationFields(BaseModel):
     spies: int
     turns_since_last_city: int
     turns_since_last_project: int
-    projects: int
+    num_projects: int = Field(alias="projects")
     project_bits: str
     wars_won: int
     wars_lost: int

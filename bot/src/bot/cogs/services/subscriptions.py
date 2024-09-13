@@ -88,8 +88,8 @@ class Subscriptions(commands.Cog):
         if not differences:
             return
 
-        nation_in_db._exists_in_db = True  # type: ignore # pylint: disable=protected-access
-        nation_in_db.save()
+        nation._exists_in_db = True  # type: ignore # pylint: disable=protected-access
+        await nation.save()
 
         for field, value in differences.items():
             logger.info(
@@ -107,8 +107,16 @@ class Subscriptions(commands.Cog):
         """Called when a nation is created."""
         nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
 
+        nation_in_db = (
+            await Nation.select(Nation.id).where(Nation.id == nation.id).first()
+        )
+
+        if nation_in_db:
+            return
+
         try:
             await nation.save()
+            logger.info("Nation created: %s", nation.id)
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error saving nation: %s", e)
             return
