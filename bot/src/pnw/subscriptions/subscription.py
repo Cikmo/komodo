@@ -160,7 +160,7 @@ class Subscription(Generic[T]):
 
         await self._pusher.unsubscribe(self._channel._name)  # type: ignore # pylint: disable=protected-access
 
-        self._channel = None
+        del self._channel
 
     async def _callback(self, data: dict[str, Any] | list[dict[str, Any]]):
         for callback in self.callbacks:

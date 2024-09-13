@@ -77,9 +77,9 @@ class Subscriptions(commands.Cog):
         nation_in_db = await Nation.objects().where(Nation.id == nation.id).first()
 
         if not nation_in_db:
-            async with self.create_nation_semaphore:
-                await self.on_nation_create(data)
-                return
+            # async with self.create_nation_semaphore:
+            await self.on_nation_create(data)
+            return
 
         # find the differences between the two nations
         nation_fields = nation.to_dict()
