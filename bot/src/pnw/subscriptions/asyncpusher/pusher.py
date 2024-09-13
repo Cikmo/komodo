@@ -53,8 +53,7 @@ class Pusher:
         )
 
         if auto_sub:
-            # self.connection.bind("pusher:connection_established", self._resubscribe)
-            pass
+            self.connection.bind("pusher:connection_established", self._resubscribe)
 
     async def connect(self):
         """Connect to websocket if not already connected. If already connected, does nothing."""
