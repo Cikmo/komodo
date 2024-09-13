@@ -72,6 +72,11 @@ class SubscriptionEvent(StrEnum):
     UPDATE = auto()
     DELETE = auto()
 
+    @classmethod
+    def all(cls):
+        """Get all subscription events."""
+        return list(cls)
+
 
 class Subscription(Generic[T]):
     """

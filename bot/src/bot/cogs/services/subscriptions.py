@@ -27,10 +27,12 @@ class Subscriptions(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-        self.models_to_subscribe_to = [
-            SubscriptionModel.NATION,
-            SubscriptionModel.ACCOUNT,
-        ]
+        self.models_to_subscribe_to: dict[
+            SubscriptionModel, list[SubscriptionEvent]
+        ] = {
+            SubscriptionModel.NATION: SubscriptionEvent.all(),
+            SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
+        }
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -39,8 +41,8 @@ class Subscriptions(commands.Cog):
 
     async def initialize_subscriptions(self):
         """Subscribes to all events for the models specified in `models_to_subscribe_to`."""
-        for model in self.models_to_subscribe_to:
-            for event in SubscriptionEvent:
+        for model, allowed_events in self.models_to_subscribe_to.items():
+            for event in allowed_events:
                 method_name = f"on_{model}_{event}"
                 method = getattr(self, method_name, None)
 
