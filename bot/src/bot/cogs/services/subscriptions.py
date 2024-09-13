@@ -3,6 +3,7 @@ Handles PnW subscriptions
 """
 
 import asyncio
+from asyncio import Semaphore
 from logging import getLogger
 from typing import Any, cast
 
@@ -31,6 +32,8 @@ class Subscriptions(commands.Cog):
         self.models_to_subscribe_to = [
             SubscriptionModel.NATION,
         ]
+
+        self.create_nation_semaphore = Semaphore(1)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -74,8 +77,9 @@ class Subscriptions(commands.Cog):
         nation_in_db = await Nation.objects().where(Nation.id == nation.id).first()
 
         if not nation_in_db:
-            await self.on_nation_create(data)
-            return
+            async with self.create_nation_semaphore:
+                await self.on_nation_create(data)
+                return
 
         # find the differences between the two nations
         nation_fields = nation.to_dict()
