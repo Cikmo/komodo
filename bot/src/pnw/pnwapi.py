@@ -15,7 +15,12 @@ class PnwAPI:
     Politics and War API client.
     """
 
-    def __init__(self, api_key: str, bot_key: str):
+    def __init__(
+        self,
+        api_key: str,
+        bot_key: str,
+        last_subscription_event: tuple[int, int] | None,
+    ):
         self._api_key = api_key
         self._bot_key = bot_key
 
@@ -27,4 +32,4 @@ class PnwAPI:
             },
         )
 
-        self.subscriptions = Subscriptions(api_key)
+        self.subscriptions = Subscriptions(api_key, last_subscription_event)

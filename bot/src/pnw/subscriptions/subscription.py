@@ -264,7 +264,9 @@ class Subscriptions:
     Manages subscriptions to PnW events.
     """
 
-    def __init__(self, pnw_api_key: str):
+    def __init__(
+        self, pnw_api_key: str, last_subscription_event: tuple[int, int] | None
+    ):
         self._pusher = Pusher(
             "a22734a47847a64386c8",
             custom_host="socket.politicsandwar.com",
@@ -273,6 +275,7 @@ class Subscriptions:
             max_msg_size=0,  # no limit
         )
         self._pnw_api_key = pnw_api_key
+        self._last_subscription_event = last_subscription_event
 
         self.subscriptions: dict[str, Subscription[Any]] = {}
 
@@ -374,3 +377,25 @@ class Subscriptions:
             The subscription if it exists. None otherwise.
         """
         return self.subscriptions.get(f"{model.value}_{event.value}")
+
+    async def fetch_subscriptions_snapshot(self, model: SubscriptionModel):
+        """Get a snapshot of the full game of a model.
+
+        Args:
+            model: The model to get a snapshot of.
+        """
+        endpoint = (
+            f"https://api.politicsandwar.com/subscriptions/v1/snapshot/{model.value}"
+        )
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(endpoint) as response:
+                data = await response.json()
+
+        # type of data will be a list of dicts with the model fields. We will need to convert this to a list of the model objects
+        if not isinstance(data, list):
+            raise ValueError(f"Expected data to be a list, got {type(data)}")
+
+        # object_list = [model(**item) for item in data]
+
+        # for item in data:
