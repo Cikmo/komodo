@@ -19,7 +19,7 @@ class PnwAPI:
         self,
         api_key: str,
         bot_key: str,
-        last_subscription_event: tuple[int, int] | None,
+        last_subscription_event: tuple[int, int] | None = None,
     ):
         self._api_key = api_key
         self._bot_key = bot_key

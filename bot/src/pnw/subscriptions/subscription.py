@@ -265,7 +265,7 @@ class Subscriptions:
     """
 
     def __init__(
-        self, pnw_api_key: str, last_subscription_event: tuple[int, int] | None
+        self, pnw_api_key: str, last_subscription_event: tuple[int, int] | None = None
     ):
         self._pusher = Pusher(
             "a22734a47847a64386c8",
