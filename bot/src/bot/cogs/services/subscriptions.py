@@ -6,8 +6,12 @@ from logging import getLogger
 
 from discord.ext import commands
 from src.bot import Bot
-from src.database.tables.pnw import Nation
-from src.pnw.api_v3 import SubscriptionAccountFields, SubscriptionNationFields
+from src.database.tables.pnw import Alliance, Nation
+from src.pnw.api_v3 import (
+    SubscriptionAccountFields,
+    SubscriptionAllianceFields,
+    SubscriptionNationFields,
+)
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
 
 logger = getLogger(__name__)
@@ -29,8 +33,9 @@ class Subscriptions(commands.Cog):
         self.models_to_subscribe_to: dict[
             SubscriptionModel, list[SubscriptionEvent]
         ] = {
-            SubscriptionModel.NATION: SubscriptionEvent.all(),
-            SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
+            # SubscriptionModel.NATION: SubscriptionEvent.all(),
+            # SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
+            SubscriptionModel.ALLIANCE: SubscriptionEvent.all(),
         }
 
     @commands.Cog.listener()
@@ -152,6 +157,61 @@ class Subscriptions(commands.Cog):
                 nation,
                 old_discord_id,
                 new_discord_id,
+            )
+
+    async def on_alliance_create(self, data: SubscriptionAllianceFields):
+        """Called when an alliance is created."""
+        existing_alliance = (
+            await Alliance.select(Alliance.id).where(Alliance.id == data.id).first()
+        )
+
+        if existing_alliance:
+            return
+
+        alliance = Alliance(**data.model_dump())
+
+        try:
+            await alliance.save()
+            logger.info("Alliance created: %s", alliance.id)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error saving alliance: %s", e)
+            return
+
+    async def on_alliance_update(self, data: SubscriptionAllianceFields):
+        """Called when an alliance is updated."""
+
+        alliance_in_db = await Alliance.objects().where(Alliance.id == data.id).first()
+
+        if not alliance_in_db:
+            await self.on_alliance_create(data)
+            return
+
+        # find the differences between the two alliances
+        alliance_in_db_fields = alliance_in_db.to_dict()
+        alliance_update_fields = data.model_dump()
+
+        differences = {
+            k: v
+            for k, v in alliance_update_fields.items()
+            if alliance_in_db_fields.get(k) != v
+        }
+
+        if not differences:
+            return
+
+        await Alliance.update(**differences).where(Alliance.id == data.id)
+
+        for field, value in differences.items():
+            logger.info(
+                "Alliance %s | %s updated: %s -> %s",
+                data.id,
+                field,
+                alliance_in_db_fields.get(field),
+                value,
+            )
+            self.bot.dispatch(
+                f"alliance_{field}_update",
+                alliance_in_db,
             )
 
 

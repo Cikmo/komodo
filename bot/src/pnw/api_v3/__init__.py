@@ -73,6 +73,7 @@ from .fragments import (
     NationFields,
     PaginatorFields,
     SubscriptionAccountFields,
+    SubscriptionAllianceFields,
     SubscriptionNationFields,
     WarFields,
 )
@@ -255,6 +256,7 @@ __all__ = [
     "SocialPolicy",
     "SortOrder",
     "SubscriptionAccountFields",
+    "SubscriptionAllianceFields",
     "SubscriptionNationFields",
     "TradeType",
     "Upload",

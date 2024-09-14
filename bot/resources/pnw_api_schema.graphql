@@ -1120,7 +1120,7 @@ scalar DateTimeAuto
 
 type Alliance {
   # The alliance's id
-  id: ID!
+  id: Int!
 
   # The alliance's name
   name: String!

@@ -12,13 +12,22 @@ from typing import Any, Generic, Iterable, Literal, TypeVar, overload
 import aiohttp
 from pydantic import BaseModel
 
-from ..api_v3 import SubscriptionAccountFields, SubscriptionNationFields
+from ..api_v3 import (
+    SubscriptionAccountFields,
+    SubscriptionAllianceFields,
+    SubscriptionNationFields,
+)
 from .asyncpusher import Channel, Pusher
 from .asyncpusher.types import Callback
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=SubscriptionAccountFields | SubscriptionNationFields)
+T = TypeVar(
+    "T",
+    bound=SubscriptionAccountFields
+    | SubscriptionNationFields
+    | SubscriptionAllianceFields,
+)
 
 
 class MetadataTime(BaseModel):
@@ -63,6 +72,7 @@ class SubscriptionModel(StrEnum):
     NATION = auto()
     ACCOUNT = auto()
     CITY = auto()
+    ALLIANCE = auto()
 
 
 class SubscriptionEvent(StrEnum):
@@ -319,6 +329,8 @@ class Subscriptions:
                 data_model = SubscriptionNationFields
             case SubscriptionModel.ACCOUNT:
                 data_model = SubscriptionAccountFields
+            case SubscriptionModel.ALLIANCE:
+                data_model = SubscriptionAllianceFields
             case _:
                 raise NotImplementedError(f"Model {model} not implemented")
 

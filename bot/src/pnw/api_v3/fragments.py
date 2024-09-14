@@ -34,7 +34,7 @@ class AlliancePositionFields(BaseModel):
 
 
 class AllianceFields(BaseModel):
-    id: str
+    id: int
     name: str
     acronym: str
     score: float
@@ -176,6 +176,17 @@ class SubscriptionAccountFields(BaseModel):
     discord_id: Optional[int]
 
 
+class SubscriptionAllianceFields(BaseModel):
+    id: int
+    name: str
+    acronym: str
+    score: float
+    color: str
+    date_created: AwareDatetime = Field(alias="date")
+    accepts_members: bool = Field(alias="accept_members")
+    flag_url: str = Field(alias="flag")
+
+
 class SubscriptionNationFields(BaseModel):
     id: int
     name: str = Field(alias="nation_name")
@@ -266,5 +277,6 @@ CityFields.model_rebuild()
 NationFields.model_rebuild()
 PaginatorFields.model_rebuild()
 SubscriptionAccountFields.model_rebuild()
+SubscriptionAllianceFields.model_rebuild()
 SubscriptionNationFields.model_rebuild()
 WarFields.model_rebuild()

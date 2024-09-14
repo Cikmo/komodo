@@ -391,3 +391,14 @@ fragment subscriptionNationFields on Nation {
   wars_lost
   #tax_id
 }
+
+fragment subscriptionAllianceFields on Alliance {
+  id
+  name
+  acronym
+  score
+  color
+  date_created: date
+  accepts_members: accept_members
+  flag_url: flag
+}

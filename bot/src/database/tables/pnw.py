@@ -38,13 +38,11 @@ class Alliance(PnwBaseTable[AllianceFields]):
     id = Integer(primary_key=True)
     name = Text()
     acronym = Text()
-    score = Real()
+    score = DoublePrecision()
     color = Text(choices=Color)
     date_created = Timestamptz()  # API name: date
-    average_score = Real()
     accepts_members = Boolean()  # API name: accept_members
     flag_url = Text()  # API name: flag
-    rank = Integer()
 
     @property
     def members(self):
@@ -52,21 +50,6 @@ class Alliance(PnwBaseTable[AllianceFields]):
         Returns a query object for all the members of this alliance.
         """
         return Nation.objects().where(Nation.alliance == self)
-
-    @classmethod
-    def preprocess_api_v3_model(cls, model: AllianceFields) -> AllianceFields:
-        if model.average_score is None:
-            model.average_score = 0.0
-
-        return model
-
-    @classmethod
-    def pydantic_overrides(cls) -> PydanticOverride:
-        return [
-            (cls.date_created, "date", datetime),
-            (cls.accepts_members, "accept_members", bool),
-            (cls.flag_url, "flag", str),
-        ]
 
 
 class AlliancePosition(PnwBaseTable[AlliancePositionFields]):
