@@ -191,6 +191,9 @@ class SubscriptionNationFields(BaseModel):
     id: int
     name: str = Field(alias="nation_name")
     leader_name: str
+    alliance: Annotated[
+        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
+    ] = Field(alias="alliance_id")
     alliance_seniority_days: int = Field(alias="alliance_seniority")
     continent: str
     war_policy: WarPolicy

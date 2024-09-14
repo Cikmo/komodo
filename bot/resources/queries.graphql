@@ -80,6 +80,14 @@ query get_alliances(
   }
 }
 
+query get_subscription_alliance($alliance_id: Int!) {
+  alliances(id: [$alliance_id]) {
+    data {
+      ...subscriptionAllianceFields
+    }
+  }
+}
+
 query get_wars(
   $war_id: [Int!]
   $active: Boolean = false
@@ -358,7 +366,7 @@ fragment subscriptionNationFields on Nation {
   id
   name: nation_name
   leader_name
-  #alliance: alliance_id
+  alliance: alliance_id
   #alliance_position: alliance_position_id
   alliance_seniority_days: alliance_seniority
   continent

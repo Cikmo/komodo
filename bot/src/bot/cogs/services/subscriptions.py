@@ -33,8 +33,8 @@ class Subscriptions(commands.Cog):
         self.models_to_subscribe_to: dict[
             SubscriptionModel, list[SubscriptionEvent]
         ] = {
-            # SubscriptionModel.NATION: SubscriptionEvent.all(),
-            # SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
+            SubscriptionModel.NATION: SubscriptionEvent.all(),
+            SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
             SubscriptionModel.ALLIANCE: SubscriptionEvent.all(),
         }
 
@@ -67,7 +67,23 @@ class Subscriptions(commands.Cog):
     async def on_nation_update(self, data: SubscriptionNationFields):
         """Called when a nation is updated."""
 
-        # nation = cast(Nation, Nation.from_api_v3(data))  # type: ignore
+        # check if alliance exists in db
+        if data.alliance:
+            alliance_in_db = (
+                await Alliance.select(Alliance.id)
+                .where(Alliance.id == data.alliance)
+                .first()
+            )
+
+            if not alliance_in_db:
+                alliance_list = (
+                    await self.bot.pnw.v3.get_subscription_alliance(data.alliance)
+                ).alliances
+
+                # get first element of data if alliance_list exists and alliance_list.data is not an empty list
+                if alliance_list and alliance_list.data:
+                    alliance_data = alliance_list.data[0]
+                    await self.on_alliance_create(alliance_data)
 
         nation_in_db = await Nation.objects().where(Nation.id == data.id).first()
 
@@ -88,6 +104,7 @@ class Subscriptions(commands.Cog):
         if not differences:
             return
 
+        # update nation
         await Nation.update(**differences).where(Nation.id == data.id)
 
         for field, value in differences.items():

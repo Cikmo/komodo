@@ -95,6 +95,11 @@ from .get_nations import (
     GetNationsNationsData,
     GetNationsNationsPaginatorInfo,
 )
+from .get_subscription_alliance import (
+    GetSubscriptionAlliance,
+    GetSubscriptionAllianceAlliances,
+    GetSubscriptionAllianceAlliancesData,
+)
 from .get_wars import GetWars, GetWarsWars, GetWarsWarsData, GetWarsWarsPaginatorInfo
 from .input_types import (
     AllianceBankrecsOrderByOrderByClause,
@@ -183,6 +188,9 @@ __all__ = [
     "GetNationsNations",
     "GetNationsNationsData",
     "GetNationsNationsPaginatorInfo",
+    "GetSubscriptionAlliance",
+    "GetSubscriptionAllianceAlliances",
+    "GetSubscriptionAllianceAlliancesData",
     "GetWars",
     "GetWarsWars",
     "GetWarsWarsData",

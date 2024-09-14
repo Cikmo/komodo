@@ -10,6 +10,7 @@ from .base_model import UNSET, UnsetType
 from .get_alliances import GetAlliances
 from .get_cities import GetCities
 from .get_nations import GetNations
+from .get_subscription_alliance import GetSubscriptionAlliance
 from .get_wars import GetWars
 from .input_types import (
     QueryAlliancesOrderByOrderByClause,
@@ -325,6 +326,41 @@ class Client(AsyncBaseClient):
         )
         data = self.get_data(response)
         return GetAlliances.model_validate(data)
+
+    async def get_subscription_alliance(
+        self, alliance_id: int, **kwargs: Any
+    ) -> GetSubscriptionAlliance:
+        query = gql(
+            """
+            query get_subscription_alliance($alliance_id: Int!) {
+              alliances(id: [$alliance_id]) {
+                data {
+                  ...subscriptionAllianceFields
+                }
+              }
+            }
+
+            fragment subscriptionAllianceFields on Alliance {
+              id
+              name
+              acronym
+              score
+              color
+              date_created: date
+              accepts_members: accept_members
+              flag_url: flag
+            }
+            """
+        )
+        variables: Dict[str, object] = {"alliance_id": alliance_id}
+        response = await self.execute(
+            query=query,
+            operation_name="get_subscription_alliance",
+            variables=variables,
+            **kwargs
+        )
+        data = self.get_data(response)
+        return GetSubscriptionAlliance.model_validate(data)
 
     async def get_wars(
         self,
