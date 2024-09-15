@@ -55,6 +55,9 @@ class Subscriptions(commands.Cog):
     async def on_ready(self):
         """Called when the bot is ready."""
 
+        # TODO: Move these into a separate function,
+        # which we call as a task. Inside of the update functions,
+        # make it so that it will wait and retry if the rate limit is hit.
         await update_all_alliances(self.bot.pnw)
         await update_all_alliance_positions(self.bot.pnw)
         await update_all_nations(self.bot.pnw)
@@ -419,6 +422,16 @@ class Subscriptions(commands.Cog):
 
         if existing_city:
             return
+
+        for n in range(5):
+            nation_in_db = (
+                await Nation.objects().where(Nation.id == data.nation).first()
+            )
+
+            if nation_in_db:
+                break
+
+            await asyncio.sleep(1 * n)
 
         city = City(**data.model_dump())
 
