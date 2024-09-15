@@ -107,6 +107,11 @@ class Subscriptions(commands.Cog):
                 if alliance_list and alliance_list.data:
                     alliance_data = alliance_list.data[0]
                     await self.on_alliance_create(alliance_data)
+                else:
+                    logger.error(
+                        "Alliance %s not found in database or API", data.alliance
+                    )
+                    data.alliance = None
 
         nation_in_db = await Nation.objects().where(Nation.id == data.id).first()
 

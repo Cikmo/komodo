@@ -46,7 +46,7 @@ async def update_all_nations(pnw_api: PnwAPI):
     # handle invalid alliance IDs
     for nation in nations:
         if nation.alliance in invalid_alliance_ids:
-            nation.alliance = 0
+            nation.alliance = None
 
     # Get the IDs of nations returned by the API
     api_nation_ids = {nation.id for nation in nations}

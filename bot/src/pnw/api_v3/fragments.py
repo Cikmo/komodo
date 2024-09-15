@@ -92,10 +92,12 @@ class CityFields(BaseModel):
 class NationFields(BaseModel):
     id: int
     alliance: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
+        Optional[int],
+        BeforeValidator(lambda x: int(x) if (x is not None and int(x) != 0) else None),
     ] = Field(alias="alliance_id")
     alliance_position_id: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
+        Optional[int],
+        BeforeValidator(lambda x: int(x) if (x is not None and int(x) != 0) else None),
     ]
     nation_name: str
     leader_name: str
@@ -192,7 +194,8 @@ class SubscriptionNationFields(BaseModel):
     name: str = Field(alias="nation_name")
     leader_name: str
     alliance: Annotated[
-        Optional[int], BeforeValidator(lambda x: int(x) if int(x) != 0 else None)
+        Optional[int],
+        BeforeValidator(lambda x: int(x) if (x is not None and int(x) != 0) else None),
     ] = Field(alias="alliance_id")
     alliance_seniority_days: int = Field(alias="alliance_seniority")
     continent: str
