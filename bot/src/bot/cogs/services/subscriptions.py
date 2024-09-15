@@ -6,7 +6,7 @@ import timeit
 from itertools import batched
 from logging import getLogger
 
-from asyncpg import ForeignKeyViolationError
+from asyncpg import ForeignKeyViolationError  # type: ignore
 
 from discord.ext import commands
 from src.bot import Bot
@@ -48,6 +48,7 @@ class Subscriptions(commands.Cog):
 
         await self.sync_all_alliances()
         await self.sync_all_nations()
+        await self.sync_all_accounts()
 
         await self.initialize_subscriptions()
 
@@ -60,7 +61,7 @@ class Subscriptions(commands.Cog):
 
         num_inserted = 0
 
-        for batch in batched(nations, 100):
+        for batch in batched(nations, 500):
             inserted = []
 
             try:
@@ -70,10 +71,8 @@ class Subscriptions(commands.Cog):
                     Nation.id, "DO UPDATE", Nation.all_columns(exclude=[Nation.id])
                 )
             except ForeignKeyViolationError:
-                logger.warning("Foreign key violation")
-
                 # insert 10 at a time
-                for batch_10 in batched(batch, 10):
+                for batch_10 in batched(batch, 50):
                     try:
                         inserted = await Nation.insert(
                             *[Nation(**nation.model_dump()) for nation in batch_10],
@@ -85,7 +84,6 @@ class Subscriptions(commands.Cog):
 
                         num_inserted += len(inserted)
                     except ForeignKeyViolationError:
-                        logger.warning("Foreign key violation")
                         # insert 1 at a time
                         for nation in batch_10:
                             try:
@@ -99,8 +97,18 @@ class Subscriptions(commands.Cog):
                                 num_inserted += len(inserted)
                             except ForeignKeyViolationError:
                                 logger.warning(
-                                    "Nation %s not inserted due to foreign key violation",
+                                    "Nation %s has invalid alliance %s",
                                     nation.id,
+                                    nation.alliance,
+                                )
+
+                                nation.alliance = 0
+                                inserted = await Nation.insert(
+                                    Nation(**nation.model_dump())
+                                ).on_conflict(
+                                    Nation.id,
+                                    "DO UPDATE",
+                                    Nation.all_columns(exclude=[Nation.id]),
                                 )
 
             num_inserted += len(inserted)
@@ -109,6 +117,36 @@ class Subscriptions(commands.Cog):
 
         logger.info(
             "Synced %s nations in %s seconds", num_inserted, end_time - start_time
+        )
+
+    async def sync_all_accounts(self):
+        start_time = timeit.default_timer()
+
+        accounts = await self.bot.pnw.subscriptions.fetch_subscriptions_snapshot(
+            SubscriptionModel.ACCOUNT
+        )
+
+        num_updated = 0
+
+        db = Nation._meta.db  # type: ignore # pylint: disable=protected-access
+
+        async with db.transaction():
+            for account in accounts:
+                updated = (
+                    await Nation.update(
+                        discord_id=account.discord_id,
+                        last_active=account.last_active,
+                    )
+                    .where(Nation.id == account.id)
+                    .returning(Nation.id)
+                )
+
+                num_updated += len(updated)
+
+        end_time = timeit.default_timer()
+
+        logger.info(
+            "Synced %s accounts in %s seconds", num_updated, end_time - start_time
         )
 
     async def sync_all_alliances(self):
@@ -322,6 +360,14 @@ class Subscriptions(commands.Cog):
                 f"alliance_{field}_update",
                 alliance_in_db,
             )
+
+    async def on_alliance_delete(self, data: SubscriptionAllianceFields):
+        """Called when an alliance is deleted."""
+        deleted = (
+            await Alliance.delete().where(Alliance.id == data.id).returning(Alliance.id)
+        )
+        if deleted:
+            logger.info("Alliance deleted: %s", data.id)
 
 
 async def setup(bot: Bot):

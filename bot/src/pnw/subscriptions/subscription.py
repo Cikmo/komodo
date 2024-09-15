@@ -433,8 +433,12 @@ class Subscriptions:
 
         # type of data will be a list of dicts with the model fields.
         # We will need to convert this to a list of the model objects
-        if not isinstance(data, list):
-            raise ValueError(f"Expected data to be a list, got {type(data)}")
+        try:
+            if not isinstance(data, list):
+                raise ValueError(f"Expected data to be a list, got {type(data)}")
+        except ValueError:
+            logger.error("Error fetching snapshot for %s. Data: %s", model, data)  # type: ignore
+            return []
 
         data = cast(list[dict[str, Any]], data)
 
