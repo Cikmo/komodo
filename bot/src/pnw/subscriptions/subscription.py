@@ -16,6 +16,7 @@ from ..api_v3 import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
     SubscriptionAlliancePositionFields,
+    SubscriptionCityFields,
     SubscriptionNationFields,
 )
 from .asyncpusher import Channel, Pusher
@@ -28,7 +29,8 @@ T = TypeVar(
     bound=SubscriptionAccountFields
     | SubscriptionNationFields
     | SubscriptionAllianceFields
-    | SubscriptionAlliancePositionFields,
+    | SubscriptionAlliancePositionFields
+    | SubscriptionCityFields,
 )
 
 
@@ -317,6 +319,14 @@ class Subscriptions:
     @overload
     async def subscribe(
         self,
+        model: Literal[SubscriptionModel.CITY],
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[SubscriptionCityFields]: ...
+
+    @overload
+    async def subscribe(
+        self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
         callbacks: Iterable[Callback],
@@ -393,8 +403,8 @@ class Subscriptions:
                 return SubscriptionAllianceFields
             case SubscriptionModel.ALLIANCE_POSITION:
                 return SubscriptionAlliancePositionFields
-            case _:
-                raise NotImplementedError(f"Model {model} not implemented")
+            case SubscriptionModel.CITY:
+                return SubscriptionCityFields
 
     def get(
         self, model: SubscriptionModel, event: SubscriptionEvent
@@ -432,12 +442,18 @@ class Subscriptions:
 
     @overload
     async def fetch_subscriptions_snapshot(
+        self, model: Literal[SubscriptionModel.CITY]
+    ) -> list[SubscriptionCityFields]: ...
+
+    @overload
+    async def fetch_subscriptions_snapshot(
         self, model: SubscriptionModel
     ) -> Sequence[
         SubscriptionAccountFields
         | SubscriptionAllianceFields
         | SubscriptionNationFields
         | SubscriptionAlliancePositionFields
+        | SubscriptionCityFields
     ]: ...
 
     async def fetch_subscriptions_snapshot(
@@ -447,6 +463,7 @@ class Subscriptions:
         | SubscriptionAllianceFields
         | SubscriptionNationFields
         | SubscriptionAlliancePositionFields
+        | SubscriptionCityFields
     ]:
         """Get a snapshot of the full game of a model.
 

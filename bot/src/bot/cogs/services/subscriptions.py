@@ -8,17 +8,19 @@ from typing import Any
 
 from discord.ext import commands
 from src.bot import Bot
-from src.database.tables.pnw import Alliance, AlliancePosition, Nation
+from src.database.tables.pnw import Alliance, AlliancePosition, City, Nation
 from src.database.update import (
     update_all_accounts,
     update_all_alliance_positions,
     update_all_alliances,
+    update_all_cities,
     update_all_nations,
 )
 from src.pnw.api_v3 import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
     SubscriptionAlliancePositionFields,
+    SubscriptionCityFields,
     SubscriptionNationFields,
 )
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
@@ -46,6 +48,7 @@ class Subscriptions(commands.Cog):
             SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
             SubscriptionModel.ALLIANCE: SubscriptionEvent.all(),
             SubscriptionModel.ALLIANCE_POSITION: SubscriptionEvent.all(),
+            SubscriptionModel.CITY: SubscriptionEvent.all(),
         }
 
     @commands.Cog.listener()
@@ -56,6 +59,14 @@ class Subscriptions(commands.Cog):
         await update_all_alliance_positions(self.bot.pnw)
         await update_all_nations(self.bot.pnw)
         await update_all_accounts(self.bot.pnw)
+
+        # wait with updating cities because of the rate limit
+        # but continue with the rest of the bot
+        async def update_cities():
+            await asyncio.sleep(60)
+            await update_all_cities(self.bot.pnw)
+
+        asyncio.create_task(update_cities())
 
         await self.initialize_subscriptions()
 
@@ -359,6 +370,70 @@ class Subscriptions(commands.Cog):
         )
         if deleted:
             logger.info("AlliancePosition deleted: %s", data.id)
+
+    async def on_city_update(self, data: SubscriptionCityFields):
+        """Called when a city is updated."""
+        city = await City.objects().where(City.id == data.id).first()
+
+        if not city:
+            return
+
+        nation_in_db = await Nation.objects().where(Nation.id == data.nation).first()
+
+        if not nation_in_db:
+            logger.warning(
+                "Ignoring city %s with invalid nation %s",
+                data.id,
+                data.nation,
+            )
+            return
+
+        city_in_db_fields = city.to_dict()
+        city_update_fields = data.model_dump()
+
+        differences = {
+            k: v for k, v in city_update_fields.items() if city_in_db_fields.get(k) != v
+        }
+
+        if not differences:
+            return
+
+        await City.update(**differences).where(City.id == data.id)
+
+        for field, value in differences.items():
+            logger.info(
+                "City %s | %s updated: %s -> %s",
+                data.id,
+                field,
+                city_in_db_fields.get(field),
+                value,
+            )
+            self.bot.dispatch(
+                f"city_{field}_update",
+                city,
+            )
+
+    async def on_city_create(self, data: SubscriptionCityFields):
+        """Called when a city is created."""
+        existing_city = await City.select(City.id).where(City.id == data.id).first()
+
+        if existing_city:
+            return
+
+        city = City(**data.model_dump())
+
+        try:
+            await city.save()
+            logger.info("City created: %s", city.id)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error saving city: %s", e)
+            return
+
+    async def on_city_delete(self, data: SubscriptionCityFields):
+        """Called when a city is deleted."""
+        deleted = await City.delete().where(City.id == data.id).returning(City.id)
+        if deleted:
+            logger.info("City deleted: %s", data.id)
 
 
 async def setup(bot: Bot):

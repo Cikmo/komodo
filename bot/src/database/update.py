@@ -5,7 +5,7 @@ This module contains functions for updating the database with the latest data fr
 import logging
 from itertools import batched
 
-from src.database.tables.pnw import Alliance, AlliancePosition, Nation
+from src.database.tables.pnw import Alliance, AlliancePosition, City, Nation
 from src.pnw.pnwapi import PnwAPI
 from src.pnw.subscriptions.subscription import SubscriptionModel
 from src.utils import Timer
@@ -235,3 +235,65 @@ async def update_all_alliance_positions(pnw_api: PnwAPI):
             await AlliancePosition.delete().where(
                 AlliancePosition.id.is_in(alliance_position_ids_to_delete)  # type: ignore
             )
+
+
+@Timer()
+async def update_all_cities(pnw_api: PnwAPI):
+    """Fetches all cities from the API and updates the database with the new data.
+
+    Args:
+        pnw_api: An instance of the PnwAPI class.
+    """
+
+    cities = await pnw_api.subscriptions.fetch_subscriptions_snapshot(
+        SubscriptionModel.CITY
+    )
+
+    if not cities:
+        return
+
+    #####
+    # The API may be bugged, and not have deleted a city when a nation is deleted.
+    # This means that there may be cities with nation IDs that no longer exist.
+    # We will check for this and remove these cities from the list.
+    nation_ids_found_in_cities = {city.nation for city in cities}
+
+    existing_nation_ids: list[int] = (
+        await Nation.select(Nation.id)
+        .where(Nation.id.is_in(nation_ids_found_in_cities))  # type: ignore
+        .output(as_list=True)
+    )
+
+    invalid_nation_ids = nation_ids_found_in_cities - set(existing_nation_ids)
+
+    if invalid_nation_ids:
+        logger.warning(
+            "Found %s invalid nation IDs found in cities. Will ignore these.",
+            len(invalid_nation_ids),
+        )
+
+    # remove cities with invalid nation IDs
+    cities = [city for city in cities if city.nation not in invalid_nation_ids]
+
+    #####
+
+    fetched_city_ids = {city.id for city in cities}
+
+    db = City._meta.db  # type: ignore # pylint: disable=protected-access
+
+    async with db.transaction():
+        for batch in batched(cities, 500):
+            await City.insert(
+                *[City(**city.model_dump()) for city in batch],
+            ).on_conflict(City.id, "DO UPDATE", City.all_columns(exclude=[City.id]))
+
+        db_city_ids: list[int] = await City.select(City.id).output(as_list=True)
+
+        city_ids_to_delete = set(db_city_ids) - fetched_city_ids
+
+        if city_ids_to_delete:
+            logger.info(
+                "Deleting %d cities not found in API response",
+                len(city_ids_to_delete),
+            )
+            await City.delete().where(City.id.is_in(city_ids_to_delete))  # type: ignore
