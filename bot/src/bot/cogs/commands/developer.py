@@ -14,8 +14,8 @@ from pydantic import BaseModel
 import discord
 from discord.ext import commands
 from src.bot.converters import NationConverter
+from src.database.old_update import update_all_tables
 from src.database.tables.pnw import Nation
-from src.database.update import update_all_tables
 from src.discord.persistent_view import PersistentView
 from src.discord.stateful_embed import StatefulEmbed
 from src.pnw.api_v3 import SubscriptionNationFields

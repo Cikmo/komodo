@@ -11,6 +11,11 @@ from asyncpg import ForeignKeyViolationError  # type: ignore
 from discord.ext import commands
 from src.bot import Bot
 from src.database.tables.pnw import Alliance, Nation
+from src.database.update import (
+    update_all_accounts,
+    update_all_alliances,
+    update_all_nations,
+)
 from src.pnw.api_v3 import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
@@ -46,132 +51,11 @@ class Subscriptions(commands.Cog):
     async def on_ready(self):
         """Called when the bot is ready."""
 
-        await self.sync_all_alliances()
-        await self.sync_all_nations()
-        await self.sync_all_accounts()
+        await update_all_alliances(self.bot.pnw)
+        await update_all_nations(self.bot.pnw)
+        await update_all_accounts(self.bot.pnw)
 
         await self.initialize_subscriptions()
-
-    async def sync_all_nations(self):
-        start_time = timeit.default_timer()
-
-        nations = await self.bot.pnw.subscriptions.fetch_subscriptions_snapshot(
-            SubscriptionModel.NATION
-        )
-
-        num_inserted = 0
-
-        for batch in batched(nations, 500):
-            inserted = []
-
-            try:
-                inserted = await Nation.insert(
-                    *[Nation(**nation.model_dump()) for nation in batch],
-                ).on_conflict(
-                    Nation.id, "DO UPDATE", Nation.all_columns(exclude=[Nation.id])
-                )
-            except ForeignKeyViolationError:
-                # insert 10 at a time
-                for batch_10 in batched(batch, 50):
-                    try:
-                        inserted = await Nation.insert(
-                            *[Nation(**nation.model_dump()) for nation in batch_10],
-                        ).on_conflict(
-                            Nation.id,
-                            "DO UPDATE",
-                            Nation.all_columns(exclude=[Nation.id]),
-                        )
-
-                        num_inserted += len(inserted)
-                    except ForeignKeyViolationError:
-                        # insert 1 at a time
-                        for nation in batch_10:
-                            try:
-                                inserted = await Nation.insert(
-                                    Nation(**nation.model_dump())
-                                ).on_conflict(
-                                    Nation.id,
-                                    "DO UPDATE",
-                                    Nation.all_columns(exclude=[Nation.id]),
-                                )
-                                num_inserted += len(inserted)
-                            except ForeignKeyViolationError:
-                                logger.warning(
-                                    "Nation %s has invalid alliance %s",
-                                    nation.id,
-                                    nation.alliance,
-                                )
-
-                                nation.alliance = 0
-                                inserted = await Nation.insert(
-                                    Nation(**nation.model_dump())
-                                ).on_conflict(
-                                    Nation.id,
-                                    "DO UPDATE",
-                                    Nation.all_columns(exclude=[Nation.id]),
-                                )
-
-            num_inserted += len(inserted)
-
-        end_time = timeit.default_timer()
-
-        logger.info(
-            "Synced %s nations in %s seconds", num_inserted, end_time - start_time
-        )
-
-    async def sync_all_accounts(self):
-        start_time = timeit.default_timer()
-
-        accounts = await self.bot.pnw.subscriptions.fetch_subscriptions_snapshot(
-            SubscriptionModel.ACCOUNT
-        )
-
-        num_updated = 0
-
-        db = Nation._meta.db  # type: ignore # pylint: disable=protected-access
-
-        async with db.transaction():
-            for account in accounts:
-                updated = (
-                    await Nation.update(
-                        discord_id=account.discord_id,
-                        last_active=account.last_active,
-                    )
-                    .where(Nation.id == account.id)
-                    .returning(Nation.id)
-                )
-
-                num_updated += len(updated)
-
-        end_time = timeit.default_timer()
-
-        logger.info(
-            "Synced %s accounts in %s seconds", num_updated, end_time - start_time
-        )
-
-    async def sync_all_alliances(self):
-        start_time = timeit.default_timer()
-
-        alliances = await self.bot.pnw.subscriptions.fetch_subscriptions_snapshot(
-            SubscriptionModel.ALLIANCE
-        )
-
-        num_inserted = 0
-
-        for batch in batched(alliances, 100):
-            inserted = await Alliance.insert(
-                *[Alliance(**alliance.model_dump()) for alliance in batch],
-            ).on_conflict(
-                Alliance.id, "DO UPDATE", Alliance.all_columns(exclude=[Alliance.id])
-            )
-
-            num_inserted += len(inserted)
-
-        end_time = timeit.default_timer()
-
-        logger.info(
-            "Synced %s alliances in %s seconds", num_inserted, end_time - start_time
-        )
 
     async def initialize_subscriptions(self):
         """Subscribes to all events for the models specified in `models_to_subscribe_to`."""
