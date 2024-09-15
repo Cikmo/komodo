@@ -48,6 +48,9 @@ async def update_all_nations(pnw_api: PnwAPI):
         if nation.alliance in invalid_alliance_ids:
             nation.alliance = 0
 
+    # Get the IDs of nations returned by the API
+    api_nation_ids = {nation.id for nation in nations}
+
     db = Nation._meta.db  # type: ignore # pylint: disable=protected-access
 
     async with db.transaction():
@@ -58,6 +61,22 @@ async def update_all_nations(pnw_api: PnwAPI):
                 Nation.id, "DO UPDATE", Nation.all_columns(exclude=[Nation.id])
             )
             num_inserted += len(inserted)
+
+        # Get the IDs of nations currently in the database
+        existing_nation_ids: list[int] = await Nation.select(Nation.id).output(
+            as_list=True
+        )
+
+        # Find nation IDs to delete (present in DB but not in API response)
+        nation_ids_to_delete = set(existing_nation_ids) - api_nation_ids
+
+        if nation_ids_to_delete:
+            logger.info(
+                "Deleting %d nations not found in API response",
+                len(nation_ids_to_delete),
+            )
+            # Delete nations that are no longer present in the API response
+            await Nation.delete().where(Nation.id.is_in(nation_ids_to_delete))  # type: ignore
 
     end_time = timeit.default_timer()
 

@@ -7,23 +7,13 @@ from __future__ import annotations
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
+import discord
 from discord.ext import commands
-from src.bot.converters import NationAPIModelConverter
 from src.database.tables.pnw import Nation
-from src.database.tables.registered_user import RegisteredUser
+from src.discord.utils import TimestampType, create_discord_timestamp
 
 if TYPE_CHECKING:
     from src.bot import Bot
-    from src.pnw.api_v3 import NationFields
-
-
-async def get_nation_from_discord_id(ctx: commands.Context[Bot]) -> NationFields | None:
-    """Get a single nation from a discord id. This is a helper function to
-    give the register command a default value."""
-    nations = (
-        await ctx.bot.api_v3.get_nations(discord_id=[str(ctx.author.id)])
-    ).nations.data
-    return nations[0] if nations else None
 
 
 class User(commands.Cog):
@@ -32,59 +22,32 @@ class User(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    @commands.command()
-    async def register(
-        self,
-        ctx: commands.Context[Bot],
-        nation: NationFields | None = commands.parameter(
-            converter=NationAPIModelConverter, default=get_nation_from_discord_id
-        ),
-    ):
-        """Register your nation with the bot."""
+    @commands.hybrid_command()
+    async def whoo(self, ctx: commands.Context[Bot], nation_name: str):
+        """Get information about a user."""
+        nation = await Nation.objects().where(Nation.name.ilike(nation_name)).first()
 
         if not nation:
-            await ctx.reply(
-                "Nation not found. Make sure you have the correct nation name or ID."
-            )
-            return
+            return await ctx.send("Nation not found.")
 
-        nation_db = await Nation.objects().where(Nation.id == int(nation.id)).first()
-        if not nation_db:
-            nation_db = Nation.from_api_v3(nation)
-            await nation_db.save()
+        alliance = await nation.get_related(Nation.alliance)
 
-        if not nation.discord == ctx.author.name:
-            await ctx.reply(
-                dedent(
-                    f"""
-                        The discord username `{nation.discord}` does not match your username `{ctx.author.name}`.
-                        
-                        **In order to register, please follow these steps:**
-                        1. Go to: https://politicsandwar.com/nation/edit/
-                        2. Scroll down to where it says Discord Username:
-                        3. Enter your Discord username `{ctx.author.name}`
-                        4. Save changes
-                        5. Run this command again
-                        """
-                )
-            )
-            return
+        message = f"# [{nation.name}](https://politicsandwar.com/nation/id={nation.id})"
 
-        user = (
-            await RegisteredUser.objects()
-            .where(RegisteredUser.discord_id == ctx.author.id)
-            .first()
+        embed = discord.Embed(
+            description=dedent(
+                f"""
+                **Leader:** {nation.leader_name}
+                **Alliance:** {alliance.name if alliance else "None"}
+                **Color:** {nation.color}
+                **Cities:** {nation.num_cities}
+                **Projects:** {nation.num_projects}
+                **Last Active:** {create_discord_timestamp(nation.last_active, TimestampType.RELATIVE_TIME)}
+                """
+            ),
         )
-        if not user:
-            user = RegisteredUser(discord_id=ctx.author.id, nation=nation_db)
-            await user.save()
-        else:
-            await ctx.reply("You are already registered ;)")
-            return
 
-        await ctx.reply(
-            f"Welcome, {nation_db.name}. You have successfully registered!.\n\nFor more info do `!??`"
-        )
+        await ctx.send(message, embed=embed)
 
 
 async def setup(bot: Bot):

@@ -2,11 +2,9 @@
 Handles PnW subscriptions
 """
 
-import timeit
-from itertools import batched
+import asyncio
 from logging import getLogger
-
-from asyncpg import ForeignKeyViolationError  # type: ignore
+from typing import Any
 
 from discord.ext import commands
 from src.bot import Bot
@@ -59,6 +57,8 @@ class Subscriptions(commands.Cog):
 
     async def initialize_subscriptions(self):
         """Subscribes to all events for the models specified in `models_to_subscribe_to`."""
+        tasks: list[asyncio.Task[Any]] = []
+
         for model, allowed_events in self.models_to_subscribe_to.items():
             for event in allowed_events:
                 method_name = f"on_{model}_{event}"
@@ -70,9 +70,18 @@ class Subscriptions(commands.Cog):
                     )
                     continue
 
-                await self.bot.pnw.subscriptions.subscribe(
-                    model=model, event=event, callbacks=[method]
+                # await self.bot.pnw.subscriptions.subscribe(
+                #     model=model, event=event, callbacks=[method]
+                # )
+                tasks.append(
+                    asyncio.create_task(
+                        self.bot.pnw.subscriptions.subscribe(
+                            model=model, event=event, callbacks=[method]
+                        )
+                    )
                 )
+
+        await asyncio.gather(*tasks)
 
         logger.info("Subscribed to all events")
 
