@@ -431,6 +431,10 @@ class Subscriptions(commands.Cog):
             if nation_in_db:
                 break
 
+            if n == 4:
+                logger.warning("Nation %s not found in database or API", data.nation)
+                return
+
             await asyncio.sleep(1 * n)
 
         city = City(**data.model_dump())
