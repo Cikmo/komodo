@@ -367,7 +367,7 @@ fragment subscriptionNationFields on Nation {
   name: nation_name
   leader_name
   alliance: alliance_id
-  #alliance_position: alliance_position_id
+  alliance_position: alliance_position_id
   alliance_seniority_days: alliance_seniority
   continent
   war_policy
@@ -409,4 +409,16 @@ fragment subscriptionAllianceFields on Alliance {
   date_created: date
   accepts_members: accept_members
   flag_url: flag
+}
+
+fragment subscriptionAlliancePositionFields on AlliancePosition {
+  id
+  name
+  date_created: date
+  date_modified
+  position_level
+  permission_bits: permissions
+  creator_id
+  last_editor_id
+  alliance: alliance_id
 }

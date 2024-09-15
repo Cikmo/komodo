@@ -8,15 +8,17 @@ from typing import Any
 
 from discord.ext import commands
 from src.bot import Bot
-from src.database.tables.pnw import Alliance, Nation
+from src.database.tables.pnw import Alliance, AlliancePosition, Nation
 from src.database.update import (
     update_all_accounts,
+    update_all_alliance_positions,
     update_all_alliances,
     update_all_nations,
 )
 from src.pnw.api_v3 import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
+    SubscriptionAlliancePositionFields,
     SubscriptionNationFields,
 )
 from src.pnw.subscriptions.subscription import SubscriptionEvent, SubscriptionModel
@@ -43,6 +45,7 @@ class Subscriptions(commands.Cog):
             SubscriptionModel.NATION: SubscriptionEvent.all(),
             SubscriptionModel.ACCOUNT: [SubscriptionEvent.UPDATE],
             SubscriptionModel.ALLIANCE: SubscriptionEvent.all(),
+            SubscriptionModel.ALLIANCE_POSITION: SubscriptionEvent.all(),
         }
 
     @commands.Cog.listener()
@@ -50,6 +53,7 @@ class Subscriptions(commands.Cog):
         """Called when the bot is ready."""
 
         await update_all_alliances(self.bot.pnw)
+        await update_all_alliance_positions(self.bot.pnw)
         await update_all_nations(self.bot.pnw)
         await update_all_accounts(self.bot.pnw)
 
@@ -266,6 +270,95 @@ class Subscriptions(commands.Cog):
         )
         if deleted:
             logger.info("Alliance deleted: %s", data.id)
+
+    async def on_alliance_position_update(
+        self, data: SubscriptionAlliancePositionFields
+    ):
+        """Called when an alliance position is updated."""
+        alliance_position = (
+            await AlliancePosition.objects()
+            .where(AlliancePosition.id == data.id)
+            .first()
+        )
+
+        if not alliance_position:
+            return
+
+        alliance_in_db = (
+            await Alliance.select(Alliance.id)
+            .where(Alliance.id == data.alliance)
+            .first()
+        )
+
+        if not alliance_in_db:
+            logger.warning(
+                "Ignoring alliance position %s with invalid alliance %s",
+                data.id,
+                data.alliance,
+            )
+
+        alliance_position_in_db_fields = alliance_position.to_dict()
+        alliance_update_fields = data.model_dump()
+
+        differences = {
+            k: v
+            for k, v in alliance_update_fields.items()
+            if alliance_position_in_db_fields.get(k) != v
+        }
+
+        if not differences:
+            return
+
+        await AlliancePosition.update(**differences).where(
+            AlliancePosition.id == data.id
+        )
+
+        for field, value in differences.items():
+            logger.info(
+                "AlliancePosition %s | %s updated: %s -> %s",
+                data.id,
+                field,
+                alliance_position_in_db_fields.get(field),
+                value,
+            )
+            self.bot.dispatch(
+                f"alliance_position_{field}_update",
+                alliance_position,
+            )
+
+    async def on_alliance_position_create(
+        self, data: SubscriptionAlliancePositionFields
+    ):
+        """Called when an alliance position is created."""
+        existing_alliance_position = (
+            await AlliancePosition.select(AlliancePosition.id)
+            .where(AlliancePosition.id == data.id)
+            .first()
+        )
+
+        if existing_alliance_position:
+            return
+
+        alliance_position = AlliancePosition(**data.model_dump())
+
+        try:
+            await alliance_position.save()
+            logger.info("AlliancePosition created: %s", alliance_position.id)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error saving alliance position: %s", e)
+            return
+
+    async def on_alliance_position_delete(
+        self, data: SubscriptionAlliancePositionFields
+    ):
+        """Called when an alliance position is deleted."""
+        deleted = (
+            await AlliancePosition.delete()
+            .where(AlliancePosition.id == data.id)
+            .returning(AlliancePosition.id)
+        )
+        if deleted:
+            logger.info("AlliancePosition deleted: %s", data.id)
 
 
 async def setup(bot: Bot):

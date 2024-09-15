@@ -5,7 +5,7 @@ This module contains functions for updating the database with the latest data fr
 import logging
 from itertools import batched
 
-from src.database.tables.pnw import Alliance, Nation
+from src.database.tables.pnw import Alliance, AlliancePosition, Nation
 from src.pnw.pnwapi import PnwAPI
 from src.pnw.subscriptions.subscription import SubscriptionModel
 from src.utils import Timer
@@ -157,3 +157,82 @@ async def update_all_alliances(pnw_api: PnwAPI):
                 len(alliance_ids_to_delete),
             )
             await Alliance.delete().where(Alliance.id.is_in(alliance_ids_to_delete))  # type: ignore
+
+
+@Timer()
+async def update_all_alliance_positions(pnw_api: PnwAPI):
+    """Fetches all alliance positions from the API and updates the database with the new data.
+
+    Args:
+        pnw_api: An instance of the PnwAPI class.
+    """
+
+    alliance_positions = await pnw_api.subscriptions.fetch_subscriptions_snapshot(
+        SubscriptionModel.ALLIANCE_POSITION
+    )
+
+    if not alliance_positions:
+        return
+
+    #####
+    # The API may be bugged, and not completely removed all references to an alliance
+    # when it is deleted. This means that there may be nations with alliance IDs that
+    # no longer exist. We will check for this and set the alliance ID to 0 if it does
+    # not exist.
+    alliance_ids_found_in_positions = {
+        position.alliance for position in alliance_positions if position.alliance
+    }
+
+    existing_alliance_ids: list[int] = (
+        await Alliance.select(Alliance.id)
+        .where(Alliance.id.is_in(alliance_ids_found_in_positions))  # type: ignore
+        .output(as_list=True)
+    )
+
+    invalid_alliance_ids = alliance_ids_found_in_positions - set(existing_alliance_ids)
+
+    if invalid_alliance_ids:
+        logger.warning(
+            "Found %s invalid alliance IDs found in alliance positions. Will ignore these.",
+            len(invalid_alliance_ids),
+        )
+
+    # remove positions with invalid alliance IDs
+    alliance_positions = [
+        position
+        for position in alliance_positions
+        if position.alliance not in invalid_alliance_ids
+    ]
+
+    #####
+
+    fetched_alliance_position_ids = {position.id for position in alliance_positions}
+
+    db = AlliancePosition._meta.db  # type: ignore # pylint: disable=protected-access
+
+    async with db.transaction():
+        for batch in batched(alliance_positions, 100):
+            await AlliancePosition.insert(
+                *[AlliancePosition(**position.model_dump()) for position in batch],
+            ).on_conflict(
+                AlliancePosition.id,
+                "DO UPDATE",
+                AlliancePosition.all_columns(exclude=[AlliancePosition.id]),
+            )
+
+        db_alliance_position_ids: list[int] = await AlliancePosition.select(
+            AlliancePosition.id
+        ).output(as_list=True)
+
+        alliance_position_ids_to_delete = (
+            set(db_alliance_position_ids) - fetched_alliance_position_ids
+        )
+
+        if alliance_position_ids_to_delete:
+            logger.info(
+                "Deleting %d alliance positions not found in API response",
+                len(alliance_position_ids_to_delete),
+            )
+            await AlliancePosition.delete().where(
+                AlliancePosition.id.is_in(alliance_position_ids_to_delete)  # type: ignore
+            )

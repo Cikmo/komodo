@@ -1031,22 +1031,22 @@ enum AlliancePositionEnum {
 
 type AlliancePosition {
   # ID of the position (0 = default applicant, 232 = default member, 231 = default officer, 230 = default heir, 229 = default leader)
-  id: ID!
+  id: Int!
 
   # Date and time the position was created
   date: DateTimeAuto!
 
   # ID of the alliance the position belongs to
-  alliance_id: ID!
+  alliance_id: Int!
 
   # Name of the position
   name: String!
 
   # The nation ID of the nation that created the position
-  creator_id: ID!
+  creator_id: Int!
 
   # The nation ID of the nation the last edited the position
-  last_editor_id: ID!
+  last_editor_id: Int!
 
   # Date and time the position was last modified
   date_modified: DateTimeAuto!

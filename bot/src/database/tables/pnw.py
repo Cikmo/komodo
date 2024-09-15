@@ -4,7 +4,7 @@ Here we define the database tables.
 
 from __future__ import annotations
 
-from datetime import datetime
+from enum import Enum
 
 from piccolo.columns import (
     BigInt,
@@ -18,19 +18,14 @@ from piccolo.columns import (
     Timestamptz,
     Varchar,
 )
+from piccolo.table import Table
 
-from src.database.base_table import PnwBaseTable, PydanticOverride
+from src.database.base_table import PnwBaseTable
 from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy, WarType
-from src.pnw.api_v3 import (
-    AllianceFields,
-    AlliancePositionFields,
-    CityFields,
-    NationFields,
-    WarFields,
-)
+from src.pnw.api_v3 import CityFields, WarFields
 
 
-class Alliance(PnwBaseTable[AllianceFields]):
+class Alliance(Table):
     """
     A table to store information about alliances in the game.
     """
@@ -52,42 +47,80 @@ class Alliance(PnwBaseTable[AllianceFields]):
         return Nation.objects().where(Nation.alliance == self)
 
 
-class AlliancePosition(PnwBaseTable[AlliancePositionFields]):
+a = {
+    "id": 19920,
+    "date": "2024-09-15T06:19:48+00:00",
+    "alliance_id": 13173,
+    "name": "FA ",
+    "creator_id": 632558,
+    "last_editor_id": 632558,
+    "date_modified": "2024-09-15T06:19:48+00:00",
+    "position_level": 4,
+    "permissions": 2048,
+}
+
+
+class AlliancePosition(Table):
     """
     A table to store information about the positions in an alliance.
     """
+
+    class DefaultPosition(Enum):
+        """Enum for the default alliance position ids."""
+
+        APPLICANT = 0
+        MEMBER = 232
+        OFFICER = 231
+        HEIR = 230
+        LEADER = 229
 
     id = Integer(primary_key=True)
     name = Text()
     date_created = Timestamptz()  # API name: date
     date_modified = Timestamptz()
     position_level = Integer()
-    default_leader = Boolean()  # API name: leader
-    default_heir = Boolean()  # API name: heir
-    default_officer = Boolean()  # API name: officer
-    default_member = Boolean()  # API name: member
     permission_bits = Integer()  # API name: permissions
-    creator_id = Integer()  # API name: creator_id
-    last_editor_id = Integer()  # API name: last_editor_id
+    creator_id = Integer()
+    last_editor_id = Integer()
 
     alliance = ForeignKey(references=Alliance, on_delete=OnDelete.cascade, null=False)
 
-    @classmethod
-    def pydantic_overrides(cls) -> PydanticOverride:
-        return [
-            (cls.date_created, "date", datetime),
-            (cls.default_leader, "leader", bool),
-            (cls.default_heir, "heir", bool),
-            (cls.default_officer, "officer", bool),
-            (cls.default_member, "member", bool),
-            (cls.permission_bits, "permissions", int),
-            (cls.creator_id, "creator_id", int | None),
-            (cls.last_editor_id, "last_editor_id", int | None),
-            (cls.alliance, "alliance_id", int),
-        ]
+    def is_default_position(self, position: DefaultPosition) -> bool:
+        """
+        Returns whether this position is a default position.
+        """
+        return self.id == position.value
+
+    @property
+    def creator(self):
+        """
+        Returns the creator of this position. May not exist.
+        """
+        return Nation.objects().where(Nation.id == self.creator_id).first()
+
+    @property
+    def last_editor(self):
+        """
+        Returns the last editor of this position. May not exist.
+        """
+        return Nation.objects().where(Nation.id == self.last_editor_id).first()
+
+    # @classmethod
+    # def pydantic_overrides(cls) -> PydanticOverride:
+    #     return [
+    #         (cls.date_created, "date", datetime),
+    #         (cls.default_leader, "leader", bool),
+    #         (cls.default_heir, "heir", bool),
+    #         (cls.default_officer, "officer", bool),
+    #         (cls.default_member, "member", bool),
+    #         (cls.permission_bits, "permissions", int),
+    #         (cls.creator_id, "creator_id", int | None),
+    #         (cls.last_editor_id, "last_editor_id", int | None),
+    #         (cls.alliance, "alliance_id", int),
+    #     ]
 
 
-class Nation(PnwBaseTable[NationFields]):
+class Nation(Table):
     """
     A table to store information about nations in the game.
     """
@@ -200,48 +233,48 @@ class City(PnwBaseTable[CityFields]):
     # Foreign Keys
     nation = ForeignKey(references=Nation, null=False, on_delete=OnDelete.cascade)
 
-    @classmethod
-    def preprocess_api_v3_model(cls, model: CityFields) -> CityFields:
-        # For some reason the API returns a negative date if the city has never been nuked
-        # to go around this we need to manually set it to None
-        if model.nuke_date and model.nuke_date.startswith("-"):
-            model.nuke_date = None
+    # @classmethod
+    # def preprocess_api_v3_model(cls, model: CityFields) -> CityFields:
+    #     # For some reason the API returns a negative date if the city has never been nuked
+    #     # to go around this we need to manually set it to None
+    #     if model.nuke_date and model.nuke_date.startswith("-"):
+    #         model.nuke_date = None
 
-        return model
+    #     return model
 
-    @classmethod
-    def pydantic_overrides(cls) -> PydanticOverride:
-        return [
-            (cls.date_created, "date", datetime),
-            (cls.last_nuke_date, "nuke_date", datetime | None),
-            (cls.oil_power_plants, "oil_power", int),
-            (cls.wind_power_plants, "wind_power", int),
-            (cls.coal_power_plants, "coal_power", int),
-            (cls.nuclear_power_plants, "nuclear_power", int),
-            (cls.coal_mines, "coal_mine", int),
-            (cls.oil_wells, "oil_well", int),
-            (cls.uranium_mines, "uranium_mine", int),
-            (cls.bauxite_mines, "bauxite_mine", int),
-            (cls.lead_mines, "lead_mine", int),
-            (cls.iron_mines, "iron_mine", int),
-            (cls.farms, "farm", int),
-            (cls.oil_refineries, "oil_refinery", int),
-            (cls.aluminum_refineries, "aluminum_refinery", int),
-            (cls.steel_mills, "steel_mill", int),
-            (cls.munitions_factories, "munitions_factory", int),
-            (cls.police_stations, "police_station", int),
-            (cls.hospitals, "hospital", int),
-            (cls.recycling_centers, "recycling_center", int),
-            (cls.subways, "subway", int),
-            (cls.supermarkets, "supermarket", int),
-            (cls.banks, "bank", int),
-            (cls.shopping_malls, "shopping_mall", int),
-            (cls.stadiums, "stadium", int),
-            (cls.factories, "factory", int),
-            (cls.hangars, "hangar", int),
-            (cls.drydocks, "drydock", int),
-            (cls.nation, "nation_id", int),
-        ]
+    # @classmethod
+    # def pydantic_overrides(cls) -> PydanticOverride:
+    #     return [
+    #         (cls.date_created, "date", datetime),
+    #         (cls.last_nuke_date, "nuke_date", datetime | None),
+    #         (cls.oil_power_plants, "oil_power", int),
+    #         (cls.wind_power_plants, "wind_power", int),
+    #         (cls.coal_power_plants, "coal_power", int),
+    #         (cls.nuclear_power_plants, "nuclear_power", int),
+    #         (cls.coal_mines, "coal_mine", int),
+    #         (cls.oil_wells, "oil_well", int),
+    #         (cls.uranium_mines, "uranium_mine", int),
+    #         (cls.bauxite_mines, "bauxite_mine", int),
+    #         (cls.lead_mines, "lead_mine", int),
+    #         (cls.iron_mines, "iron_mine", int),
+    #         (cls.farms, "farm", int),
+    #         (cls.oil_refineries, "oil_refinery", int),
+    #         (cls.aluminum_refineries, "aluminum_refinery", int),
+    #         (cls.steel_mills, "steel_mill", int),
+    #         (cls.munitions_factories, "munitions_factory", int),
+    #         (cls.police_stations, "police_station", int),
+    #         (cls.hospitals, "hospital", int),
+    #         (cls.recycling_centers, "recycling_center", int),
+    #         (cls.subways, "subway", int),
+    #         (cls.supermarkets, "supermarket", int),
+    #         (cls.banks, "bank", int),
+    #         (cls.shopping_malls, "shopping_mall", int),
+    #         (cls.stadiums, "stadium", int),
+    #         (cls.factories, "factory", int),
+    #         (cls.hangars, "hangar", int),
+    #         (cls.drydocks, "drydock", int),
+    #         (cls.nation, "nation_id", int),
+    #     ]
 
 
 class War(PnwBaseTable[WarFields]):
@@ -310,48 +343,48 @@ class War(PnwBaseTable[WarFields]):
 
         return model
 
-    @classmethod
-    def pydantic_overrides(cls) -> PydanticOverride:
-        return [
-            (cls.start_date, "date", datetime),
-            (cls.attacker_action_points, "att_points", int),
-            (cls.defender_action_points, "def_points", int),
-            (cls.attacker_offering_peace, "att_peace", bool),
-            (cls.defender_offering_peace, "def_peace", bool),
-            (cls.attacker_resistance, "att_resistance", int),
-            (cls.defender_resistance, "def_resistance", int),
-            (cls.attacker_fortified, "att_fortify", bool),
-            (cls.defender_fortified, "def_fortify", bool),
-            (cls.attacker_gasoline_used, "att_gas_used", float),
-            (cls.defender_gasoline_used, "def_gas_used", float),
-            (cls.attacker_munitions_used, "att_mun_used", float),
-            (cls.defender_munitions_used, "def_mun_used", float),
-            (cls.attacker_aluminum_used, "att_alum_used", float),
-            (cls.defender_aluminum_used, "def_alum_used", float),
-            (cls.attacker_steel_used, "att_steel_used", float),
-            (cls.defender_steel_used, "def_steel_used", float),
-            (cls.attacker_infra_destroyed, "att_infra_destroyed", float),
-            (cls.defender_infra_destroyed, "def_infra_destroyed", float),
-            (cls.attacker_money_looted, "att_money_looted", int),
-            (cls.defender_money_looted, "def_money_looted", int),
-            (cls.attacker_soldiers_lost, "att_soldiers_lost", int),
-            (cls.defender_soldiers_lost, "def_soldiers_lost", int),
-            (cls.attacker_tanks_lost, "att_tanks_lost", int),
-            (cls.defender_tanks_lost, "def_tanks_lost", int),
-            (cls.attacker_aircraft_lost, "att_aircraft_lost", int),
-            (cls.defender_aircraft_lost, "def_aircraft_lost", int),
-            (cls.attacker_ships_lost, "att_ships_lost", int),
-            (cls.defender_ships_lost, "def_ships_lost", int),
-            (cls.attacker_missiles_used, "att_missiles_used", int),
-            (cls.defender_missiles_used, "def_missiles_used", int),
-            (cls.attacker_nukes_used, "att_nukes_used", int),
-            (cls.defender_nukes_used, "def_nukes_used", int),
-            (cls.attacker_infra_destroyed_value, "att_infra_destroyed_value", float),
-            (cls.defender_infra_destroyed_value, "def_infra_destroyed_value", float),
-            (cls.attacker_id, "att_id", int),
-            (cls.defender_id, "def_id", int),
-            (cls.ground_control_id, "ground_control", int | None),
-            (cls.air_superiority_id, "air_superiority", int | None),
-            (cls.naval_blockade_id, "naval_blockade", int | None),
-            (cls.winner_id, "winner_id", int | None),
-        ]
+    # @classmethod
+    # def pydantic_overrides(cls) -> PydanticOverride:
+    #     return [
+    #         (cls.start_date, "date", datetime),
+    #         (cls.attacker_action_points, "att_points", int),
+    #         (cls.defender_action_points, "def_points", int),
+    #         (cls.attacker_offering_peace, "att_peace", bool),
+    #         (cls.defender_offering_peace, "def_peace", bool),
+    #         (cls.attacker_resistance, "att_resistance", int),
+    #         (cls.defender_resistance, "def_resistance", int),
+    #         (cls.attacker_fortified, "att_fortify", bool),
+    #         (cls.defender_fortified, "def_fortify", bool),
+    #         (cls.attacker_gasoline_used, "att_gas_used", float),
+    #         (cls.defender_gasoline_used, "def_gas_used", float),
+    #         (cls.attacker_munitions_used, "att_mun_used", float),
+    #         (cls.defender_munitions_used, "def_mun_used", float),
+    #         (cls.attacker_aluminum_used, "att_alum_used", float),
+    #         (cls.defender_aluminum_used, "def_alum_used", float),
+    #         (cls.attacker_steel_used, "att_steel_used", float),
+    #         (cls.defender_steel_used, "def_steel_used", float),
+    #         (cls.attacker_infra_destroyed, "att_infra_destroyed", float),
+    #         (cls.defender_infra_destroyed, "def_infra_destroyed", float),
+    #         (cls.attacker_money_looted, "att_money_looted", int),
+    #         (cls.defender_money_looted, "def_money_looted", int),
+    #         (cls.attacker_soldiers_lost, "att_soldiers_lost", int),
+    #         (cls.defender_soldiers_lost, "def_soldiers_lost", int),
+    #         (cls.attacker_tanks_lost, "att_tanks_lost", int),
+    #         (cls.defender_tanks_lost, "def_tanks_lost", int),
+    #         (cls.attacker_aircraft_lost, "att_aircraft_lost", int),
+    #         (cls.defender_aircraft_lost, "def_aircraft_lost", int),
+    #         (cls.attacker_ships_lost, "att_ships_lost", int),
+    #         (cls.defender_ships_lost, "def_ships_lost", int),
+    #         (cls.attacker_missiles_used, "att_missiles_used", int),
+    #         (cls.defender_missiles_used, "def_missiles_used", int),
+    #         (cls.attacker_nukes_used, "att_nukes_used", int),
+    #         (cls.defender_nukes_used, "def_nukes_used", int),
+    #         (cls.attacker_infra_destroyed_value, "att_infra_destroyed_value", float),
+    #         (cls.defender_infra_destroyed_value, "def_infra_destroyed_value", float),
+    #         (cls.attacker_id, "att_id", int),
+    #         (cls.defender_id, "def_id", int),
+    #         (cls.ground_control_id, "ground_control", int | None),
+    #         (cls.air_superiority_id, "air_superiority", int | None),
+    #         (cls.naval_blockade_id, "naval_blockade", int | None),
+    #         (cls.winner_id, "winner_id", int | None),
+    #     ]

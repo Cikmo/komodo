@@ -18,12 +18,12 @@ from .enums import (
 
 
 class AlliancePositionFields(BaseModel):
-    id: str
+    id: int
     date: AwareDatetime
-    alliance_id: str
+    alliance_id: int
     name: str
-    creator_id: str
-    last_editor_id: str
+    creator_id: int
+    last_editor_id: int
     date_modified: AwareDatetime
     position_level: int
     leader: bool
@@ -189,6 +189,18 @@ class SubscriptionAllianceFields(BaseModel):
     flag_url: str = Field(alias="flag")
 
 
+class SubscriptionAlliancePositionFields(BaseModel):
+    id: int
+    name: str
+    date_created: AwareDatetime = Field(alias="date")
+    date_modified: AwareDatetime
+    position_level: int
+    permission_bits: int = Field(alias="permissions")
+    creator_id: int
+    last_editor_id: int
+    alliance: int = Field(alias="alliance_id")
+
+
 class SubscriptionNationFields(BaseModel):
     id: int
     name: str = Field(alias="nation_name")
@@ -197,6 +209,10 @@ class SubscriptionNationFields(BaseModel):
         Optional[int],
         BeforeValidator(lambda x: int(x) if (x is not None and int(x) != 0) else None),
     ] = Field(alias="alliance_id")
+    alliance_position: Annotated[
+        Optional[int],
+        BeforeValidator(lambda x: int(x) if (x is not None and int(x) != 0) else None),
+    ] = Field(alias="alliance_position_id")
     alliance_seniority_days: int = Field(alias="alliance_seniority")
     continent: str
     war_policy: WarPolicy
@@ -284,5 +300,6 @@ NationFields.model_rebuild()
 PaginatorFields.model_rebuild()
 SubscriptionAccountFields.model_rebuild()
 SubscriptionAllianceFields.model_rebuild()
+SubscriptionAlliancePositionFields.model_rebuild()
 SubscriptionNationFields.model_rebuild()
 WarFields.model_rebuild()

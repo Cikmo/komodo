@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from ..api_v3 import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
+    SubscriptionAlliancePositionFields,
     SubscriptionNationFields,
 )
 from .asyncpusher import Channel, Pusher
@@ -26,7 +27,8 @@ T = TypeVar(
     "T",
     bound=SubscriptionAccountFields
     | SubscriptionNationFields
-    | SubscriptionAllianceFields,
+    | SubscriptionAllianceFields
+    | SubscriptionAlliancePositionFields,
 )
 
 
@@ -73,6 +75,7 @@ class SubscriptionModel(StrEnum):
     ACCOUNT = auto()
     CITY = auto()
     ALLIANCE = auto()
+    ALLIANCE_POSITION = auto()
 
 
 class SubscriptionEvent(StrEnum):
@@ -298,6 +301,22 @@ class Subscriptions:
     @overload
     async def subscribe(
         self,
+        model: Literal[SubscriptionModel.ALLIANCE],
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[SubscriptionAllianceFields]: ...
+
+    @overload
+    async def subscribe(
+        self,
+        model: Literal[SubscriptionModel.ALLIANCE_POSITION],
+        event: SubscriptionEvent,
+        callbacks: Iterable[Callback],
+    ) -> Subscription[SubscriptionAlliancePositionFields]: ...
+
+    @overload
+    async def subscribe(
+        self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
         callbacks: Iterable[Callback],
@@ -372,6 +391,8 @@ class Subscriptions:
                 return SubscriptionAccountFields
             case SubscriptionModel.ALLIANCE:
                 return SubscriptionAllianceFields
+            case SubscriptionModel.ALLIANCE_POSITION:
+                return SubscriptionAlliancePositionFields
             case _:
                 raise NotImplementedError(f"Model {model} not implemented")
 
@@ -406,11 +427,17 @@ class Subscriptions:
 
     @overload
     async def fetch_subscriptions_snapshot(
+        self, model: Literal[SubscriptionModel.ALLIANCE_POSITION]
+    ) -> list[SubscriptionAlliancePositionFields]: ...
+
+    @overload
+    async def fetch_subscriptions_snapshot(
         self, model: SubscriptionModel
     ) -> Sequence[
         SubscriptionAccountFields
         | SubscriptionAllianceFields
         | SubscriptionNationFields
+        | SubscriptionAlliancePositionFields
     ]: ...
 
     async def fetch_subscriptions_snapshot(
@@ -419,6 +446,7 @@ class Subscriptions:
         SubscriptionAccountFields
         | SubscriptionAllianceFields
         | SubscriptionNationFields
+        | SubscriptionAlliancePositionFields
     ]:
         """Get a snapshot of the full game of a model.
 
