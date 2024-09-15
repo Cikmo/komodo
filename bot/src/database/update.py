@@ -175,10 +175,9 @@ async def update_all_alliance_positions(pnw_api: PnwAPI):
         return
 
     #####
-    # The API may be bugged, and not completely removed all references to an alliance
-    # when it is deleted. This means that there may be nations with alliance IDs that
-    # no longer exist. We will check for this and set the alliance ID to 0 if it does
-    # not exist.
+    # The API may be bugged, and not completely removed all positions when an
+    # alliance is deleted. This means that there may be positions with alliance IDs that
+    # no longer exist. We will check for this and remove these positions from the list.
     alliance_ids_found_in_positions = {
         position.alliance for position in alliance_positions if position.alliance
     }
