@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from enum import StrEnum, auto
-from typing import Any, Generic, Iterable, Literal, TypeVar, overload
+from typing import Any, Generic, Iterable, Literal, Sequence, TypeVar, cast, overload
 
 import aiohttp
 from pydantic import BaseModel
@@ -327,15 +327,7 @@ class Subscriptions:
             )
             return self.subscriptions[f"{model.value}_{event.value}"]
 
-        match model:
-            case SubscriptionModel.NATION:
-                data_model = SubscriptionNationFields
-            case SubscriptionModel.ACCOUNT:
-                data_model = SubscriptionAccountFields
-            case SubscriptionModel.ALLIANCE:
-                data_model = SubscriptionAllianceFields
-            case _:
-                raise NotImplementedError(f"Model {model} not implemented")
+        data_model = self.get_data_model(model)
 
         subscription = Subscription(
             self._pusher, self._pnw_api_key, model, event, data_model, list(callbacks)
@@ -364,6 +356,25 @@ class Subscriptions:
             subscription.event.value,
         )
 
+    def get_data_model(self, model: SubscriptionModel):
+        """Get the Pydantic data model for a subscription model.
+
+        Args:
+            model: The subscription model to get the Pydantic data model for.
+
+        Returns:
+            The Pydantic data model.
+        """
+        match model:
+            case SubscriptionModel.NATION:
+                return SubscriptionNationFields
+            case SubscriptionModel.ACCOUNT:
+                return SubscriptionAccountFields
+            case SubscriptionModel.ALLIANCE:
+                return SubscriptionAllianceFields
+            case _:
+                raise NotImplementedError(f"Model {model} not implemented")
+
     def get(
         self, model: SubscriptionModel, event: SubscriptionEvent
     ) -> Subscription[Any] | None:
@@ -378,24 +389,57 @@ class Subscriptions:
         """
         return self.subscriptions.get(f"{model.value}_{event.value}")
 
-    async def fetch_subscriptions_snapshot(self, model: SubscriptionModel):
+    @overload
+    async def fetch_subscriptions_snapshot(
+        self, model: Literal[SubscriptionModel.NATION]
+    ) -> list[SubscriptionNationFields]: ...
+
+    @overload
+    async def fetch_subscriptions_snapshot(
+        self, model: Literal[SubscriptionModel.ACCOUNT]
+    ) -> list[SubscriptionAccountFields]: ...
+
+    @overload
+    async def fetch_subscriptions_snapshot(
+        self, model: Literal[SubscriptionModel.ALLIANCE]
+    ) -> list[SubscriptionAllianceFields]: ...
+
+    @overload
+    async def fetch_subscriptions_snapshot(
+        self, model: SubscriptionModel
+    ) -> Sequence[
+        SubscriptionAccountFields
+        | SubscriptionAllianceFields
+        | SubscriptionNationFields
+    ]: ...
+
+    async def fetch_subscriptions_snapshot(
+        self, model: SubscriptionModel
+    ) -> Sequence[
+        SubscriptionAccountFields
+        | SubscriptionAllianceFields
+        | SubscriptionNationFields
+    ]:
         """Get a snapshot of the full game of a model.
 
         Args:
             model: The model to get a snapshot of.
         """
-        endpoint = (
-            f"https://api.politicsandwar.com/subscriptions/v1/snapshot/{model.value}"
-        )
+        endpoint = f"https://api.politicsandwar.com/subscriptions/v1/snapshot/{model.value}?api_key={self._pnw_api_key}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(endpoint) as response:
                 data = await response.json()
 
-        # type of data will be a list of dicts with the model fields. We will need to convert this to a list of the model objects
+        # type of data will be a list of dicts with the model fields.
+        # We will need to convert this to a list of the model objects
         if not isinstance(data, list):
             raise ValueError(f"Expected data to be a list, got {type(data)}")
 
-        # object_list = [model(**item) for item in data]
+        data = cast(list[dict[str, Any]], data)
 
-        # for item in data:
+        data_model = self.get_data_model(model)
+
+        object_list = [data_model(**item) for item in data]
+
+        return object_list
