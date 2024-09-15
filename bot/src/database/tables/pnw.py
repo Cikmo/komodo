@@ -9,6 +9,7 @@ from enum import Enum
 from piccolo.columns import (
     BigInt,
     Boolean,
+    Date,
     DoublePrecision,
     ForeignKey,
     Integer,
@@ -22,7 +23,7 @@ from piccolo.table import Table
 
 from src.database.base_table import PnwBaseTable
 from src.database.enums import Color, Continent, DomesticPolicy, WarPolicy, WarType
-from src.pnw.api_v3 import CityFields, WarFields
+from src.pnw.api_v3 import WarFields
 
 
 class Alliance(Table):
@@ -45,19 +46,6 @@ class Alliance(Table):
         Returns a query object for all the members of this alliance.
         """
         return Nation.objects().where(Nation.alliance == self)
-
-
-a = {
-    "id": 19920,
-    "date": "2024-09-15T06:19:48+00:00",
-    "alliance_id": 13173,
-    "name": "FA ",
-    "creator_id": 632558,
-    "last_editor_id": 632558,
-    "date_modified": "2024-09-15T06:19:48+00:00",
-    "position_level": 4,
-    "permissions": 2048,
-}
 
 
 class AlliancePosition(Table):
@@ -104,20 +92,6 @@ class AlliancePosition(Table):
         Returns the last editor of this position. May not exist.
         """
         return Nation.objects().where(Nation.id == self.last_editor_id).first()
-
-    # @classmethod
-    # def pydantic_overrides(cls) -> PydanticOverride:
-    #     return [
-    #         (cls.date_created, "date", datetime),
-    #         (cls.default_leader, "leader", bool),
-    #         (cls.default_heir, "heir", bool),
-    #         (cls.default_officer, "officer", bool),
-    #         (cls.default_member, "member", bool),
-    #         (cls.permission_bits, "permissions", int),
-    #         (cls.creator_id, "creator_id", int | None),
-    #         (cls.last_editor_id, "last_editor_id", int | None),
-    #         (cls.alliance, "alliance_id", int),
-    #     ]
 
 
 class Nation(Table):
@@ -176,7 +150,45 @@ class Nation(Table):
         return City.objects().where(City.nation == self)
 
 
-class City(PnwBaseTable[CityFields]):
+# a = {
+#     "id": 1046222,  # yes
+#     "nation_id": 239259,  # yes
+#     "name": "Raftel's city",  # yes
+#     "date": "2023-07-15",  # yes
+#     "infrastructure": 663.93,  # yes
+#     "land": 2250.0,  # yes
+#     "oil_power": 0,  # yes
+#     "wind_power": 0,  # yes
+#     "coal_power": 0,  # yes
+#     "nuclear_power": 2,  # yes
+#     "coal_mine": 0,  # yes
+#     "oil_well": 10,  # yes
+#     "uranium_mine": 0,  # yes
+#     "barracks": 5,  # yes
+#     "farm": 0,  # yes
+#     "police_station": 1,  # yes
+#     "hospital": 2,  # yes
+#     "recycling_center": 1,  # yes
+#     "subway": 1,  # yes
+#     "supermarket": 3,  # yes
+#     "bank": 5,  # yes
+#     "shopping_mall": 4,  # yes
+#     "stadium": 3,  # yes
+#     "lead_mine": 0,  # yes
+#     "iron_mine": 0,  # yes
+#     "bauxite_mine": 0,
+#     "oil_refinery": 0,  # yes
+#     "aluminum_refinery": 0,  # yes
+#     "steel_mill": 0,  # yes
+#     "munitions_factory": 0,  # yes
+#     "factory": 5,  # yes
+#     "hangar": 5,  # yes
+#     "drydock": 3,  # yes
+#     "nuke_date": "0000-00-00",  # yes
+# }
+
+
+class City(Table):
     """
     A table to store information about cities in the game.
     """
@@ -184,11 +196,11 @@ class City(PnwBaseTable[CityFields]):
     id = Integer(primary_key=True)
     name = Text()
     date_created = Timestamptz()  # API name: date
-    infrastructure = Real()
-    land = Real()
-    powered = Boolean()
-    last_nuke_date = Timestamptz(
+    infrastructure = DoublePrecision()
+    land = DoublePrecision()
+    last_nuke_in_game_date = Date(
         null=True,
+        default=None,
     )  # API name: nuke_date
 
     # Power

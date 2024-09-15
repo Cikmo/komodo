@@ -2,7 +2,8 @@
 # however, it has been modified to include proper nullability, and also remove deprecated fields.
 
 ### CUSTOM SCALARS FOR KOMODO
-scalar IntID # CUSTOM: Need this to convert the ID to an integer
+scalar IntID
+scalar NukeDate
 ###
 
 type Query {
@@ -2392,10 +2393,10 @@ enum DomesticPolicy {
 
 type City {
   # ID of the city
-  id: ID!
+  id: Int!
 
   # ID of the nation the city is in
-  nation_id: ID!
+  nation_id: Int!
 
   # Nation the city is in
   nation: Nation!
@@ -2554,7 +2555,7 @@ type City {
   # nukedate: Date @deprecated(reason: "Use nuke_date instead.")
 
   # Date the city was last nuked
-  nuke_date: String
+  nuke_date: NukeDate
 }
 
 # A date string with format `YYYY-MM-DD`, e.g. `2011-05-23`.

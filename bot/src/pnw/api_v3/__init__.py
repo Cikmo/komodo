@@ -75,6 +75,7 @@ from .fragments import (
     SubscriptionAccountFields,
     SubscriptionAllianceFields,
     SubscriptionAlliancePositionFields,
+    SubscriptionCityFields,
     SubscriptionNationFields,
     WarFields,
 )
@@ -267,6 +268,7 @@ __all__ = [
     "SubscriptionAccountFields",
     "SubscriptionAllianceFields",
     "SubscriptionAlliancePositionFields",
+    "SubscriptionCityFields",
     "SubscriptionNationFields",
     "TradeType",
     "Upload",

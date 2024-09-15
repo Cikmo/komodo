@@ -6,6 +6,8 @@ from typing import Annotated, List, Optional
 
 from pydantic import AwareDatetime, BeforeValidator, Field
 
+from src.pnw.custom_parsers import parse_nuke_date
+
 from .base_model import BaseModel
 from .enums import (
     DomesticPolicy,
@@ -52,10 +54,10 @@ class AllianceFieldsAlliancePositions(AlliancePositionFields):
 
 
 class CityFields(BaseModel):
-    id: str
-    nation_id: str
+    id: int
+    nation_id: int
     name: str
-    nuke_date: Optional[str]
+    nuke_date: Optional[Annotated[date, BeforeValidator(parse_nuke_date)]]
     date: date
     infrastructure: float
     land: float
@@ -201,6 +203,42 @@ class SubscriptionAlliancePositionFields(BaseModel):
     alliance: int = Field(alias="alliance_id")
 
 
+class SubscriptionCityFields(BaseModel):
+    id: int
+    nation: int = Field(alias="nation_id")
+    name: str
+    date_created: date = Field(alias="date")
+    infrastructure: float
+    land: float
+    oil_power_plants: int = Field(alias="oil_power")
+    wind_power_plants: int = Field(alias="wind_power")
+    coal_power_plants: int = Field(alias="coal_power")
+    nuclear_power_plants: int = Field(alias="nuclear_power")
+    coal_mines: int = Field(alias="coal_mine")
+    oil_wells: int = Field(alias="oil_well")
+    uranium_mines: int = Field(alias="uranium_mine")
+    barracks: int
+    farms: int = Field(alias="farm")
+    police_stations: int = Field(alias="police_station")
+    hospitals: int = Field(alias="hospital")
+    recycling_centers: int = Field(alias="recycling_center")
+    subways: int = Field(alias="subway")
+    supermarkets: int = Field(alias="supermarket")
+    banks: int = Field(alias="bank")
+    shopping_malls: int = Field(alias="shopping_mall")
+    stadiums: int = Field(alias="stadium")
+    lead_mines: int = Field(alias="lead_mine")
+    iron_mines: int = Field(alias="iron_mine")
+    bauxite_mines: int = Field(alias="bauxite_mine")
+    oil_refineries: int = Field(alias="oil_refinery")
+    aluminum_refineries: int = Field(alias="aluminum_refinery")
+    steel_mills: int = Field(alias="steel_mill")
+    munitions_factories: int = Field(alias="munitions_factory")
+    factories: int = Field(alias="factory")
+    hangars: int = Field(alias="hangar")
+    drydocks: int = Field(alias="drydock")
+
+
 class SubscriptionNationFields(BaseModel):
     id: int
     name: str = Field(alias="nation_name")
@@ -301,5 +339,6 @@ PaginatorFields.model_rebuild()
 SubscriptionAccountFields.model_rebuild()
 SubscriptionAllianceFields.model_rebuild()
 SubscriptionAlliancePositionFields.model_rebuild()
+SubscriptionCityFields.model_rebuild()
 SubscriptionNationFields.model_rebuild()
 WarFields.model_rebuild()

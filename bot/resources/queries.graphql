@@ -422,3 +422,39 @@ fragment subscriptionAlliancePositionFields on AlliancePosition {
   last_editor_id
   alliance: alliance_id
 }
+
+fragment subscriptionCityFields on City {
+  id
+  nation: nation_id
+  name
+  date_created: date
+  infrastructure
+  land
+  oil_power_plants: oil_power
+  wind_power_plants: wind_power
+  coal_power_plants: coal_power
+  nuclear_power_plants: nuclear_power
+  coal_mines: coal_mine
+  oil_wells: oil_well
+  uranium_mines: uranium_mine
+  barracks
+  farms: farm
+  police_stations: police_station
+  hospitals: hospital
+  recycling_centers: recycling_center
+  subways: subway
+  supermarkets: supermarket
+  banks: bank
+  shopping_malls: shopping_mall
+  stadiums: stadium
+  lead_mines: lead_mine
+  iron_mines: iron_mine
+  bauxite_mines: bauxite_mine
+  oil_refineries: oil_refinery
+  aluminum_refineries: aluminum_refinery
+  steel_mills: steel_mill
+  munitions_factories: munitions_factory
+  factories: factory
+  hangars: hangar
+  drydocks: drydock
+}
