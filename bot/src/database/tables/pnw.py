@@ -195,7 +195,7 @@ class City(Table):
 
     id = Integer(primary_key=True)
     name = Text()
-    date_created = Timestamptz()  # API name: date
+    date_created = Date()  # API name: date
     infrastructure = DoublePrecision()
     land = DoublePrecision()
     last_nuke_in_game_date = Date(
