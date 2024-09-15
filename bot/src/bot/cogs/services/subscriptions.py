@@ -66,7 +66,7 @@ class Subscriptions(commands.Cog):
         # wait with updating cities because of the rate limit
         # but continue with the rest of the bot
         async def update_cities():
-            await asyncio.sleep(60)
+            await asyncio.sleep(70)
             await update_all_cities(self.bot.pnw)
 
         asyncio.create_task(update_cities())
