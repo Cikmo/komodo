@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from enum import StrEnum, auto
-from typing import Any, Generic, Iterable, Literal, Sequence, TypeVar, cast, overload
+from typing import Any, Literal, Sequence, cast, overload
 
 import aiohttp
 from pydantic import BaseModel
@@ -24,13 +24,12 @@ from .asyncpusher.types import Callback
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar(
-    "T",
-    bound=SubscriptionAccountFields
+type SubscriptionFields = (
+    SubscriptionAccountFields
     | SubscriptionNationFields
     | SubscriptionAllianceFields
     | SubscriptionAlliancePositionFields
-    | SubscriptionCityFields,
+    | SubscriptionCityFields
 )
 
 
@@ -93,7 +92,7 @@ class SubscriptionEvent(StrEnum):
         return list(cls)
 
 
-class Subscription(Generic[T]):
+class Subscription[T: SubscriptionFields]:
     """
     Represents a subscription to a PnW event.
     """
@@ -289,7 +288,7 @@ class Subscriptions:
         self,
         model: Literal[SubscriptionModel.NATION],
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[SubscriptionNationFields]: ...
 
     @overload
@@ -297,7 +296,7 @@ class Subscriptions:
         self,
         model: Literal[SubscriptionModel.ACCOUNT],
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[SubscriptionAccountFields]: ...
 
     @overload
@@ -305,7 +304,7 @@ class Subscriptions:
         self,
         model: Literal[SubscriptionModel.ALLIANCE],
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[SubscriptionAllianceFields]: ...
 
     @overload
@@ -313,7 +312,7 @@ class Subscriptions:
         self,
         model: Literal[SubscriptionModel.ALLIANCE_POSITION],
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[SubscriptionAlliancePositionFields]: ...
 
     @overload
@@ -321,7 +320,7 @@ class Subscriptions:
         self,
         model: Literal[SubscriptionModel.CITY],
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[SubscriptionCityFields]: ...
 
     @overload
@@ -329,14 +328,14 @@ class Subscriptions:
         self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[Any]: ...
 
     async def subscribe(
         self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
-        callbacks: Iterable[Callback],
+        callbacks: Sequence[Callback],
     ) -> Subscription[Any]:
         """Subscribe to a PnW event.
 
@@ -448,23 +447,11 @@ class Subscriptions:
     @overload
     async def fetch_subscriptions_snapshot(
         self, model: SubscriptionModel
-    ) -> Sequence[
-        SubscriptionAccountFields
-        | SubscriptionAllianceFields
-        | SubscriptionNationFields
-        | SubscriptionAlliancePositionFields
-        | SubscriptionCityFields
-    ]: ...
+    ) -> Sequence[SubscriptionFields]: ...
 
     async def fetch_subscriptions_snapshot(
         self, model: SubscriptionModel
-    ) -> Sequence[
-        SubscriptionAccountFields
-        | SubscriptionAllianceFields
-        | SubscriptionNationFields
-        | SubscriptionAlliancePositionFields
-        | SubscriptionCityFields
-    ]:
+    ) -> Sequence[SubscriptionFields]:
         """Get a snapshot of the full game of a model.
 
         Args:
