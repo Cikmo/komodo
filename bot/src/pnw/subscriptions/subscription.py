@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from enum import StrEnum, auto
+from enum import Enum, StrEnum, auto
 from typing import Any, Literal, Sequence, cast, overload
 
 import aiohttp
@@ -69,14 +69,29 @@ class MetadataEvent(BaseModel):
     crc32: int
 
 
-class SubscriptionModel(StrEnum):
+# class SubscriptionModel(StrEnum):
+#     """Subscription models."""
+
+#     NATION = auto()
+#     ACCOUNT = auto()
+#     CITY = auto()
+#     ALLIANCE = auto()
+#     ALLIANCE_POSITION = auto()
+
+
+class SubscriptionModel(Enum):
     """Subscription models."""
 
-    NATION = auto()
-    ACCOUNT = auto()
-    CITY = auto()
-    ALLIANCE = auto()
-    ALLIANCE_POSITION = auto()
+    NATION = SubscriptionNationFields
+    ACCOUNT = SubscriptionAccountFields
+    CITY = SubscriptionCityFields
+    ALLIANCE = SubscriptionAllianceFields
+    ALLIANCE_POSITION = SubscriptionAlliancePositionFields
+
+    @property
+    def model_name(self):
+        """The model name used in the API."""
+        return self.name.lower()
 
 
 class SubscriptionEvent(StrEnum):
@@ -92,7 +107,7 @@ class SubscriptionEvent(StrEnum):
         return list(cls)
 
 
-class Subscription[T: SubscriptionFields]:
+class Subscription:
     """
     Represents a subscription to a PnW event.
     """
@@ -106,7 +121,6 @@ class Subscription[T: SubscriptionFields]:
         pnw_api_key: str,
         model: SubscriptionModel,
         event: SubscriptionEvent,
-        data_model: type[T],
         callbacks: list[Callback],
     ):
         """Create a new subscription.
@@ -125,7 +139,6 @@ class Subscription[T: SubscriptionFields]:
         self.model = model
         self.event = event
         self.callbacks = callbacks
-        self.data_model = data_model
 
         self._channel: Channel | None = None
 
@@ -163,7 +176,7 @@ class Subscription[T: SubscriptionFields]:
             if not channel_name:
                 logger.error(
                     "Could not get channel name for %s %s",
-                    self.model.value,
+                    self.model.model_name,
                     self.event.value,
                 )
                 return
@@ -174,7 +187,7 @@ class Subscription[T: SubscriptionFields]:
                 self._channel.bind(event_name, self._callback)
                 self._channel.bind(f"{event_name}_METADATA", self._handle_metadata)
 
-            logger.info("Subscribed to %s %s", self.model, self.event)
+            logger.info("Subscribed to %s %s", self.model.model_name, self.event)
 
     async def _unsubscribe(self):
         """Unsubscribe from a model in PnW."""
@@ -189,9 +202,9 @@ class Subscription[T: SubscriptionFields]:
         for callback in self.callbacks:
             if isinstance(data, list):
                 for item in data:
-                    await callback(self.data_model(**item))
+                    await callback(self.model.value(**item))
             else:
-                await callback(self.data_model(**data))
+                await callback(self.model.value(**data))
 
     async def _handle_metadata(self, data: Any):
         new_metadata = MetadataEvent(**data)
@@ -204,7 +217,9 @@ class Subscription[T: SubscriptionFields]:
         # we missed some events and need to rollback
         if self._cached_metadata.max < new_metadata.after:
             logger.info(
-                "Missed events for %s %s. Rolling back...", self.model, self.event
+                "Missed events for %s %s. Rolling back...",
+                self.model.model_name,
+                self.event,
             )
             logger.info(
                 "Cached metadata: %s, New metadata: %s",
@@ -239,11 +254,11 @@ class Subscription[T: SubscriptionFields]:
 
         fields = ",".join(
             x.alias if x.alias else field_name
-            for field_name, x in self.data_model.model_fields.items()
+            for field_name, x in self.model.value.model_fields.items()
         )
 
         url = (
-            f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{self.model.value}/{self.event.value}"
+            f"https://api.politicsandwar.com/subscriptions/v1/subscribe/{self.model.model_name}/{self.event.value}"
             f"?api_key={self._pnw_api_key}&metadata=true"
             f"&include={fields}"
         )
@@ -257,7 +272,7 @@ class Subscription[T: SubscriptionFields]:
     def _construct_event_names(
         self, model: SubscriptionModel, event: SubscriptionEvent
     ) -> tuple[str, str]:
-        model_str = model.value.upper()
+        model_str = model.model_name.upper()
         event_str = event.value.upper()
 
         return f"{model_str}_{event_str}", f"BULK_{model_str}_{event_str}"
@@ -281,62 +296,14 @@ class Subscriptions:
         self._pnw_api_key = pnw_api_key
         self._last_subscription_event = last_subscription_event
 
-        self.subscriptions: dict[str, Subscription[Any]] = {}
-
-    @overload
-    async def subscribe(
-        self,
-        model: Literal[SubscriptionModel.NATION],
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[SubscriptionNationFields]: ...
-
-    @overload
-    async def subscribe(
-        self,
-        model: Literal[SubscriptionModel.ACCOUNT],
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[SubscriptionAccountFields]: ...
-
-    @overload
-    async def subscribe(
-        self,
-        model: Literal[SubscriptionModel.ALLIANCE],
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[SubscriptionAllianceFields]: ...
-
-    @overload
-    async def subscribe(
-        self,
-        model: Literal[SubscriptionModel.ALLIANCE_POSITION],
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[SubscriptionAlliancePositionFields]: ...
-
-    @overload
-    async def subscribe(
-        self,
-        model: Literal[SubscriptionModel.CITY],
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[SubscriptionCityFields]: ...
-
-    @overload
-    async def subscribe(
-        self,
-        model: SubscriptionModel,
-        event: SubscriptionEvent,
-        callbacks: Sequence[Callback],
-    ) -> Subscription[Any]: ...
+        self.subscriptions: dict[str, Subscription] = {}
 
     async def subscribe(
         self,
         model: SubscriptionModel,
         event: SubscriptionEvent,
         callbacks: Sequence[Callback],
-    ) -> Subscription[Any]:
+    ) -> Subscription:
         """Subscribe to a PnW event.
 
         Args:
@@ -347,26 +314,26 @@ class Subscriptions:
         Returns:
             The subscription object.
         """
-        if f"{model.value}_{event.value}" in self.subscriptions:
+        if f"{model.model_name}_{event.value}" in self.subscriptions:
             logger.warning(
                 "Tried to subscribe to %s %s, but already subscribed",
-                model.value,
+                model.model_name,
                 event.value,
             )
-            return self.subscriptions[f"{model.value}_{event.value}"]
+            return self.subscriptions[f"{model.model_name}_{event.value}"]
 
-        data_model = self.get_data_model(model)
+        # data_model = self.get_data_model(model)
 
         subscription = Subscription(
-            self._pusher, self._pnw_api_key, model, event, data_model, list(callbacks)
+            self._pusher, self._pnw_api_key, model, event, list(callbacks)
         )
-        self.subscriptions[f"{model.value}_{event.value}"] = subscription
+        self.subscriptions[f"{model.model_name}_{event.value}"] = subscription
 
         await subscription._subscribe()  # type: ignore # pylint: disable=protected-access
 
         return subscription
 
-    async def unsubscribe(self, subscription: Subscription[Any]) -> None:
+    async def unsubscribe(self, subscription: Subscription) -> None:
         """Unsubscribe from a PnW event.
 
         Args:
@@ -377,37 +344,18 @@ class Subscriptions:
 
         await subscription._unsubscribe()  # type: ignore # pylint: disable=protected-access
 
-        del self.subscriptions[f"{subscription.model.value}_{subscription.event.value}"]
+        del self.subscriptions[
+            f"{subscription.model.model_name}_{subscription.event.value}"
+        ]
         logger.info(
             "Unsubscribed from %s %s",
-            subscription.model.value,
+            subscription.model.model_name,
             subscription.event.value,
         )
 
-    def get_data_model(self, model: SubscriptionModel):
-        """Get the Pydantic data model for a subscription model.
-
-        Args:
-            model: The subscription model to get the Pydantic data model for.
-
-        Returns:
-            The Pydantic data model.
-        """
-        match model:
-            case SubscriptionModel.NATION:
-                return SubscriptionNationFields
-            case SubscriptionModel.ACCOUNT:
-                return SubscriptionAccountFields
-            case SubscriptionModel.ALLIANCE:
-                return SubscriptionAllianceFields
-            case SubscriptionModel.ALLIANCE_POSITION:
-                return SubscriptionAlliancePositionFields
-            case SubscriptionModel.CITY:
-                return SubscriptionCityFields
-
     def get(
         self, model: SubscriptionModel, event: SubscriptionEvent
-    ) -> Subscription[Any] | None:
+    ) -> Subscription | None:
         """Get a subscription by name and event.
 
         Args:
@@ -417,7 +365,7 @@ class Subscriptions:
         Returns:
             The subscription if it exists. None otherwise.
         """
-        return self.subscriptions.get(f"{model.value}_{event.value}")
+        return self.subscriptions.get(f"{model.model_name}_{event.value}")
 
     @overload
     async def fetch_subscriptions_snapshot(
@@ -457,7 +405,7 @@ class Subscriptions:
         Args:
             model: The model to get a snapshot of.
         """
-        endpoint = f"https://api.politicsandwar.com/subscriptions/v1/snapshot/{model.value}?api_key={self._pnw_api_key}"
+        endpoint = f"https://api.politicsandwar.com/subscriptions/v1/snapshot/{model.model_name}?api_key={self._pnw_api_key}"
 
         async with aiohttp.ClientSession() as session:
             async with session.get(endpoint) as response:
@@ -469,13 +417,19 @@ class Subscriptions:
             if not isinstance(data, list):
                 raise ValueError(f"Expected data to be a list, got {type(data)}")
         except ValueError:
-            logger.error("Error fetching snapshot for %s. Data: %s", model, data)  # type: ignore
+            logger.error("Error fetching snapshot for %s. Data: %s", model.model_name, data)  # type: ignore
             return []
 
         data = cast(list[dict[str, Any]], data)
 
-        data_model = self.get_data_model(model)
-
-        object_list = [data_model(**item) for item in data]
+        object_list = [model.value(**item) for item in data]
 
         return object_list
+
+
+async def test():
+    subscriptions = Subscriptions("api_key")
+
+    nation_subscription = await subscriptions.subscribe(
+        SubscriptionModel.NATION, SubscriptionEvent.CREATE, []
+    )

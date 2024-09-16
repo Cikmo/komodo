@@ -79,7 +79,7 @@ class Subscriptions(commands.Cog):
 
         for model, allowed_events in self.models_to_subscribe_to.items():
             for event in allowed_events:
-                method_name = f"on_{model}_{event}"
+                method_name = f"on_{model.model_name}_{event}"
                 method = getattr(self, method_name, None)
 
                 if method is None:
