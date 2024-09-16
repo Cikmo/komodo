@@ -156,7 +156,7 @@ class Subscriptions(commands.Cog):
         for field, value in differences.items():
             logger.info(
                 "Nation %s | %s updated: %s -> %s",
-                data.id,
+                data.name,
                 field,
                 nation_in_db_fields.get(field),
                 value,
@@ -179,7 +179,7 @@ class Subscriptions(commands.Cog):
 
         try:
             await nation.save()
-            logger.info("Nation created: %s", nation.id)
+            logger.info("Nation created: %s", nation.name)
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error saving nation: %s", e)
             return
