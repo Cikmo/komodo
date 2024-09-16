@@ -425,11 +425,3 @@ class Subscriptions:
         object_list = [model.value(**item) for item in data]
 
         return object_list
-
-
-async def test():
-    subscriptions = Subscriptions("api_key")
-
-    nation_subscription = await subscriptions.subscribe(
-        SubscriptionModel.NATION, SubscriptionEvent.CREATE, []
-    )
