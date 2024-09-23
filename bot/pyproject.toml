@@ -16,7 +16,7 @@ piccolo = { extras = ["all"], version = "^1.17.0" }
 pylint = "^3.2.7"
 ariadne-codegen = "^0.14.0"
 black = "^24.8.0"
-openai = "^1.43.0"
+openai = "^1.47.1"
 async-lru = "^2.0.4"
 semver = "^3.0.2"
 orjson = "^3.10.7"
